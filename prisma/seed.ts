@@ -75,6 +75,37 @@ async function main() {
       },
     });
 
+    // Optionaler Kunden-Testuser (für E2E-Guard-Tests); nur wenn Env gesetzt.
+    const customerEmail = process.env.SEED_CUSTOMER_EMAIL;
+    const customerPassword = process.env.SEED_CUSTOMER_PASSWORD;
+    if (customerEmail && customerPassword) {
+      const customerHash = await hashPassword(customerPassword);
+      const customer = await prisma.user.upsert({
+        where: { email: customerEmail },
+        update: { passwordHash: customerHash },
+        create: {
+          email: customerEmail,
+          name: "Test-Kunde",
+          passwordHash: customerHash,
+          emailVerified: new Date(),
+        },
+      });
+      await prisma.membership.upsert({
+        where: {
+          userId_organisationId: {
+            userId: customer.id,
+            organisationId: organisation.id,
+          },
+        },
+        update: { role: "CUSTOMER" },
+        create: {
+          userId: customer.id,
+          organisationId: organisation.id,
+          role: "CUSTOMER",
+        },
+      });
+    }
+
     // --- Rechtsträger (Plan A aktiv, Plan B inaktiv) --------------------------
     async function upsertLegalEntity(data: {
       name: string;

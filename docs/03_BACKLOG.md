@@ -26,7 +26,7 @@ Definition of Done (global): Code gemerged, Tests grün, Migration angewendet, i
 |---|---|---|---|---|
 | [x] 1.1 | Vollständiges Prisma-Schema nach `02_DATENMODELL.md` inkl. Enums, Indizes, Constraints (Exclusion, Unique) | 5 | B1–B5 | Migration; Test: Cross-Tenant-Query schlägt fehl |
 | [x] 1.2 | Seed Winter 1 (Organisation, LegalEntities, Venue, Courts, Season, Club, Vereinskontingent-Block) | 2 | Seed | `pnpm seed` idempotent — **Preise/Rabatt sind Platzhalter** bis Kalkulationstool v2, Adressen TODO, Beach-Liga-Slots nach Abstimmung mit Roland |
-| [ ] 1.3 | Admin-Layout (Sidebar, Standort-Switcher, Rollen-Guard) | 3 | K3 | Nur ADMIN/STAFF sehen Admin |
+| [x] 1.3 | Admin-Layout (Sidebar, Standort-Switcher, Rollen-Guard) | 3 | K3 | Nur ADMIN/STAFF sehen Admin |
 | [ ] 1.4 | Admin: Standort-Konfiguration (Öffnungszeiten, Schließtage, Raster, Fristen, Storno-Regel) | 4 | B2 | Formular mit Zod-Validierung, Audit-Eintrag |
 | [ ] 1.5 | Admin: Plätze, Saisons, Vereine, Aussteller (LegalEntity) CRUD | 4 | B3–B5 | Aussteller-Wechsel am Standort möglich |
 | [ ] 1.6 | Admin: Preisregeln CRUD mit Vorschau „Preis für Slot X" | 3 | C1, C2 | – |

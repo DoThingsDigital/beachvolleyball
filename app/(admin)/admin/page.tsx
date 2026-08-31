@@ -1,25 +1,36 @@
-import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 
-import { auth } from "@/src/auth";
-import { STAFF_ROLES } from "@/src/auth/config";
+import { VENUE_COOKIE } from "@/lib/venue-cookie";
+import { requireStaff } from "@/src/auth/guards";
+import { createRepositories } from "@/src/db/repositories";
 
 export default async function AdminPage() {
-  // Die Middleware schützt /admin bereits; hier zusätzlich serverseitig
-  // prüfen, damit der Guard nicht allein an der Middleware hängt.
-  const session = await auth();
-  const isStaff = session?.user.memberships.some((m) =>
-    STAFF_ROLES.includes(m.role),
-  );
-  if (!isStaff) {
-    redirect("/konto");
-  }
+  const staff = await requireStaff();
+  const repos = createRepositories(staff.ctx);
+  const venues = await repos.venues.findMany();
+
+  const cookieStore = await cookies();
+  const cookieVenueId = cookieStore.get(VENUE_COOKIE)?.value;
+  const venue = venues.find((v) => v.id === cookieVenueId) ?? venues[0] ?? null;
+  const courts = venue ? await repos.courts.findManyForVenue(venue.id) : [];
 
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-lg flex-col gap-4 p-4">
-      <h1 className="text-2xl font-semibold">Backoffice</h1>
-      <p className="text-muted-foreground text-sm">
-        Admin-Bereich – Ausbau folgt ab Sprint 1 (Ticket 1.3).
-      </p>
-    </main>
+    <div className="flex flex-col gap-4">
+      <h1 className="text-2xl font-semibold">Übersicht</h1>
+      {venue ? (
+        <dl className="grid max-w-md grid-cols-2 gap-2 text-sm">
+          <dt className="text-muted-foreground">Standort</dt>
+          <dd data-testid="admin-venue">{venue.name}</dd>
+          <dt className="text-muted-foreground">Aktive Plätze</dt>
+          <dd>{courts.length}</dd>
+          <dt className="text-muted-foreground">Rolle</dt>
+          <dd>{staff.role}</dd>
+        </dl>
+      ) : (
+        <p className="text-muted-foreground text-sm">
+          Noch kein Standort angelegt – <code>pnpm seed</code> ausführen.
+        </p>
+      )}
+    </div>
   );
 }

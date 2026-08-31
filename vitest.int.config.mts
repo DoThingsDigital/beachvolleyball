@@ -1,5 +1,13 @@
+import "dotenv/config";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
+
+// Integrationstests laufen gegen die Test-DB, nie gegen die Dev-DB.
+const testUrl = process.env.DATABASE_URL_TEST ?? process.env.DATABASE_URL;
+if (!testUrl) {
+  throw new Error("DATABASE_URL_TEST (oder DATABASE_URL) muss gesetzt sein.");
+}
+process.env.DATABASE_URL = testUrl;
 
 export default defineConfig({
   resolve: {
@@ -11,9 +19,11 @@ export default defineConfig({
     ],
   },
   test: {
-    include: ["src/**/*.test.ts"],
-    exclude: ["src/**/*.int.test.ts", "**/node_modules/**"],
+    include: ["src/**/*.int.test.ts"],
     environment: "node",
-    passWithNoTests: true,
+    globalSetup: "./src/db/test/global-setup.ts",
+    // gemeinsame DB → Testdateien seriell ausführen
+    fileParallelism: false,
+    testTimeout: 20_000,
   },
 });

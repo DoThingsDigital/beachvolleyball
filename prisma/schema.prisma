@@ -1,12 +1,28 @@
-// Migrations-Workflow mit Custom-SQL (z. B. Exclusion-Constraints, Extensions):
+// Vollständiges Datenmodell nach docs/02_DATENMODELL.md (Ticket 1.1).
+//
+// Migrations-Workflow mit Custom-SQL (Exclusion-Constraints, Extensions):
 //   1. Schema ändern, dann `pnpm prisma migrate dev --create-only --name <name>`
 //   2. Erzeugtes prisma/migrations/<ts>_<name>/migration.sql um Custom-SQL ergänzen
 //   3. `pnpm prisma migrate dev` wendet die Migration an
-// Prisma diff-t nur das Schema; reines Custom-SQL (btree_gist, EXCLUDE, Trigger)
-// lebt ausschließlich in den migration.sql-Dateien. Nie `migrate reset` ohne Not.
+// Reines Custom-SQL (btree_gist, EXCLUDE, CHECK) lebt nur in migration.sql.
 //
-// Prisma 7: Die Verbindungs-URL steht in prisma.config.ts (CLI/Migrate) bzw.
-// im Driver-Adapter in src/db/client.ts (Laufzeit), nicht mehr hier.
+// Prisma 7: Verbindungs-URL in prisma.config.ts (CLI) bzw. Driver-Adapter
+// in src/db/client.ts (Laufzeit).
+//
+// Konventionen:
+// - Geld in Integer-Cent, Steuersätze in Basispunkten (1900 = 19 %).
+// - Zeitpunkte als timestamptz (@db.Timestamptz); lokale Logik
+//   (Europe/Berlin) in src/domain. Ohne timestamptz wäre tstzrange() im
+//   Exclusion-Constraint nicht IMMUTABLE.
+// - `organisationId` auf jeder Fachtabelle. Struktur-Tabellen (Venue,
+//   LegalEntity, Club, Membership) hängen per FK an Organisation; auf
+//   Blatt-Tabellen ist es bewusst nur Filterfeld + Index — Integrität kommt
+//   transitiv über venueId/legalEntityId, gesetzt wird es immer aus dem
+//   TenantContext (src/db).
+// - Abweichungen vom Doc: User.emailVerified (Auth.js-Konvention statt
+//   emailVerifiedAt); Verknüpfung Booking/Subscription → OrderItem nur als
+//   einseitiger FK (orderItemId), statt zusätzlich OrderItem.bookingId —
+//   sonst zirkulärer Insert.
 
 generator client {
   provider = "prisma-client"
@@ -17,8 +33,9 @@ datasource db {
   provider = "postgresql"
 }
 
-// Auth-Grundlage (Ticket 0.4). Vollständiges Domain-Schema folgt mit Ticket 1.1
-// (docs/02_DATENMODELL.md); die Modelle hier sind das dort definierte Subset.
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
 
 enum MembershipRole {
   CUSTOMER
@@ -27,34 +44,364 @@ enum MembershipRole {
   SUPERADMIN
 }
 
+enum CancelRefundMode {
+  MONEY
+  CREDIT
+  NONE
+}
+
+enum Sport {
+  BEACH
+  TENNIS
+}
+
+enum SeasonStatus {
+  DRAFT
+  PRESALE
+  ACTIVE
+  CLOSED
+}
+
+enum ClubMembershipStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  REJECTED
+}
+
+enum MandateProvider {
+  STRIPE
+  BANK
+}
+
+enum MandateStatus {
+  ACTIVE
+  REVOKED
+  FAILED
+}
+
+enum BillingMode {
+  UPFRONT
+  MONTHLY
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  CANCELLED
+}
+
+enum BlockType {
+  VEREIN
+  LIGA
+  WARTUNG
+  EVENT
+  GESPERRT
+}
+
+enum BookingKind {
+  CUSTOMER
+  SUBSCRIPTION
+  BLOCK
+}
+
+enum BookingStatus {
+  HOLD
+  PENDING_PAYMENT
+  CONFIRMED
+  RELEASED
+  CANCELLED
+  EXPIRED
+  NO_SHOW
+}
+
+enum UsageType {
+  KOMMERZIELL
+  VEREIN
+  LIGA
+  INTERN
+}
+
+enum BookingSource {
+  ONLINE
+  ADMIN
+  SUBSCRIPTION
+  BLOCK
+  RELEASE_RESALE
+}
+
+enum OrderStatus {
+  DRAFT
+  AWAITING_PAYMENT
+  PROCESSING
+  PAID
+  PARTIALLY_REFUNDED
+  REFUNDED
+  FAILED
+  CANCELLED
+}
+
+enum ProductType {
+  SINGLE_BOOKING
+  SUBSCRIPTION
+  CREDIT_TOPUP
+  BLOCK_CARD
+  VOUCHER
+  FEE
+  MANUAL
+}
+
+enum PaymentProvider {
+  STRIPE
+  BANK_SEPA
+  MANUAL
+}
+
+enum PaymentStatus {
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  DISPUTED
+}
+
+enum RefundStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+enum InvoiceType {
+  INVOICE
+  CREDIT_NOTE
+}
+
+// ---------------------------------------------------------------------------
+// Stamm und Konfiguration
+// ---------------------------------------------------------------------------
+
 model Organisation {
   id        String   @id @default(cuid())
   name      String
   slug      String   @unique
+  // Feature-Flags: paypalEnabled, confirmOnProcessing, sepaLeadDays, …
   settings  Json     @default("{}")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
-  memberships Membership[]
+  memberships   Membership[]
+  venues        Venue[]
+  legalEntities LegalEntity[]
 }
 
-model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String?
-  phone         String?
-  passwordHash  String?
-  // Lastenheft nennt das Feld emailVerifiedAt; hier Auth.js-Konvention (Adapter).
-  emailVerified DateTime?
-  image         String?
-  sepaBlocked   Boolean   @default(false)
-  anonymizedAt  DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+model LegalEntity {
+  id               String   @id @default(cuid())
+  organisationId   String
+  name             String
+  legalForm        String
+  street           String
+  zip              String
+  city             String
+  country          String   @default("DE")
+  taxNumber        String?
+  vatId            String?
+  iban             String?
+  bic              String?
+  creditorId       String?
+  invoicePrefix    String
+  defaultTaxRateBp Int
+  smallBusiness    Boolean  @default(false)
+  email            String
+  phone            String?
+  website          String?
+  stripeAccountId  String?
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(3)
 
-  memberships Membership[]
-  accounts    Account[]
-  sessions    Session[]
+  organisation Organisation      @relation(fields: [organisationId], references: [id])
+  venues       Venue[]
+  invoices     Invoice[]
+  sequences    InvoiceSequence[]
+
+  @@index([organisationId])
+}
+
+model Venue {
+  id                 String           @id @default(cuid())
+  organisationId     String
+  legalEntityId      String
+  name               String
+  slug               String           @unique
+  street             String
+  zip                String
+  city               String
+  timezone           String           @default("Europe/Berlin")
+  slotMinutes        Int              @default(30)
+  minDurationMin     Int              @default(60)
+  maxDurationMin     Int              @default(120)
+  leadTimeMin        Int              @default(60)
+  horizonDays        Int              @default(14)
+  memberHorizonDays  Int              @default(21)
+  holdMinutes        Int              @default(15)
+  cancelHours        Int              @default(24)
+  cancelRefundMode   CancelRefundMode @default(MONEY)
+  releaseHoursBefore Int              @default(48)
+  sepaLeadDays       Int              @default(5)
+  // { "mon": [["08:00","22:00"]], … }
+  openingHours       Json
+  // ["2026-12-24", …]
+  closedDates        Json             @default("[]")
+  termsVersion       String           @default("v1")
+  active             Boolean          @default(true)
+  createdAt          DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime         @updatedAt @db.Timestamptz(3)
+
+  organisation  Organisation   @relation(fields: [organisationId], references: [id])
+  legalEntity   LegalEntity    @relation(fields: [legalEntityId], references: [id])
+  courts        Court[]
+  seasons       Season[]
+  clubs         Club[]
+  priceRules    PriceRule[]
+  blocks        Block[]
+  bookings      Booking[]
+  subscriptions Subscription[]
+  orders        Order[]
+
+  @@index([organisationId])
+}
+
+model Court {
+  id             String   @id @default(cuid())
+  organisationId String
+  venueId        String
+  name           String
+  sortOrder      Int      @default(0)
+  courtGroup     String?
+  sport          Sport    @default(BEACH)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
+
+  venue         Venue          @relation(fields: [venueId], references: [id])
+  bookings      Booking[]
+  subscriptions Subscription[]
+  blocks        Block[]
+
+  @@index([venueId])
+  @@index([organisationId])
+}
+
+model Season {
+  id                     String       @id @default(cuid())
+  organisationId         String
+  venueId                String
+  name                   String
+  startDate              DateTime     @db.Timestamptz(3)
+  endDate                DateTime     @db.Timestamptz(3)
+  presaleStart           DateTime?    @db.Timestamptz(3)
+  status                 SeasonStatus @default(DRAFT)
+  subscriptionDiscountBp Int          @default(0)
+  createdAt              DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime     @updatedAt @db.Timestamptz(3)
+
+  venue         Venue          @relation(fields: [venueId], references: [id])
+  priceRules    PriceRule[]
+  subscriptions Subscription[]
+
+  @@index([venueId])
+  @@index([organisationId])
+}
+
+model Club {
+  id             String   @id @default(cuid())
+  organisationId String
+  venueId        String
+  name           String
+  contactEmail   String
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
+
+  venue           Venue            @relation(fields: [venueId], references: [id])
+  clubMemberships ClubMembership[]
+  blocks          Block[]
+  bookings        Booking[]
+
+  @@index([venueId])
+  @@index([organisationId])
+}
+
+model PriceRule {
+  id                      String   @id @default(cuid())
+  organisationId          String
+  venueId                 String
+  seasonId                String
+  // leer = alle Plätze
+  courtIds                String[] @default([])
+  // 1 = Mo … 7 = So (ISO)
+  weekdays                Int[]
+  timeFrom                String // "17:00" (lokale Zeit)
+  timeTo                  String // "22:00"
+  // Bruttopreis (Endkundenpreis); Netto/Steuer werden bei Bestellung rückgerechnet
+  pricePerHourCents       Int
+  memberPricePerHourCents Int?
+  priority                Int      @default(0)
+  label                   String
+  active                  Boolean  @default(true)
+  createdAt               DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime @updatedAt @db.Timestamptz(3)
+
+  venue  Venue  @relation(fields: [venueId], references: [id])
+  season Season @relation(fields: [seasonId], references: [id])
+
+  @@index([venueId])
+  @@index([seasonId])
+  @@index([organisationId])
+}
+
+// ---------------------------------------------------------------------------
+// Nutzer und Vereinsbezug
+// ---------------------------------------------------------------------------
+
+model User {
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  name                 String?
+  phone                String?
+  passwordHash         String?
+  // Lastenheft: emailVerifiedAt — hier Auth.js-Konvention (Adapter)
+  emailVerified        DateTime? @db.Timestamptz(3)
+  image                String?
+  billingStreet        String?
+  billingZip           String?
+  billingCity          String?
+  billingCountry       String?
+  stripeCustomerId     String?
+  sepaBlocked          Boolean   @default(false)
+  termsAcceptedVersion String?
+  termsAcceptedAt      DateTime? @db.Timestamptz(3)
+  anonymizedAt         DateTime? @db.Timestamptz(3)
+  // interne Admin-Notizen
+  notes                String?
+  createdAt            DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime  @updatedAt @db.Timestamptz(3)
+
+  memberships             Membership[]
+  accounts                Account[]
+  sessions                Session[]
+  clubMemberships         ClubMembership[]
+  verifiedClubMemberships ClubMembership[] @relation("ClubMembershipVerifiedBy")
+  sepaMandates            SepaMandate[]
+  subscriptions           Subscription[]
+  bookings                Booking[]
+  cancelledBookings       Booking[]        @relation("BookingCancelledBy")
+  createdBlocks           Block[]          @relation("BlockCreatedBy")
+  orders                  Order[]
+  invoices                Invoice[]
+  createdRefunds          Refund[]         @relation("RefundCreatedBy")
+  creditEntries           CreditLedger[]
+  emailLogs               EmailLog[]
+  auditLogs               AuditLog[]       @relation("AuditActor")
 }
 
 model Membership {
@@ -63,8 +410,8 @@ model Membership {
   organisationId String
   role           MembershipRole @default(CUSTOMER)
   venueIds       String[]       @default([])
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  createdAt      DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime       @updatedAt @db.Timestamptz(3)
 
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
@@ -73,7 +420,407 @@ model Membership {
   @@index([organisationId])
 }
 
-// --- Auth.js-Adapter-Tabellen (https://authjs.dev/getting-started/adapters/prisma) ---
+model ClubMembership {
+  id               String               @id @default(cuid())
+  organisationId   String
+  userId           String
+  clubId           String
+  status           ClubMembershipStatus @default(PENDING)
+  memberNumber     String?
+  validUntil       DateTime?            @db.Timestamptz(3)
+  isClubAdmin      Boolean              @default(false)
+  verifiedByUserId String?
+  createdAt        DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime             @updatedAt @db.Timestamptz(3)
+
+  user       User  @relation(fields: [userId], references: [id])
+  club       Club  @relation(fields: [clubId], references: [id])
+  verifiedBy User? @relation("ClubMembershipVerifiedBy", fields: [verifiedByUserId], references: [id])
+
+  @@unique([userId, clubId])
+  @@index([clubId])
+  @@index([organisationId])
+}
+
+model SepaMandate {
+  id                    String          @id @default(cuid())
+  userId                String
+  provider              MandateProvider
+  mandateRef            String          @unique
+  ibanLast4             String
+  // nur Bank-SEPA (S3), verschlüsselt at rest
+  ibanEncrypted         String?
+  bic                   String?
+  accountHolder         String
+  signedAt              DateTime        @db.Timestamptz(3)
+  status                MandateStatus   @default(ACTIVE)
+  stripePaymentMethodId String?
+  createdAt             DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime        @updatedAt @db.Timestamptz(3)
+
+  user     User      @relation(fields: [userId], references: [id])
+  payments Payment[]
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Belegung
+// ---------------------------------------------------------------------------
+
+model Subscription {
+  id                      String             @id @default(cuid())
+  organisationId          String
+  venueId                 String
+  userId                  String
+  seasonId                String
+  courtId                 String
+  // 1 = Mo … 7 = So (ISO)
+  weekday                 Int
+  startTime               String // "19:00" (lokale Zeit)
+  durationMin             Int
+  dateFrom                DateTime           @db.Timestamptz(3)
+  dateTo                  DateTime           @db.Timestamptz(3)
+  skippedDates            Json               @default("[]")
+  pricePerOccurrenceCents Int
+  totalCents              Int
+  billingMode             BillingMode        @default(UPFRONT)
+  status                  SubscriptionStatus @default(PENDING)
+  cancelledAt             DateTime?          @db.Timestamptz(3)
+  cancelReason            String?
+  orderItemId             String?
+  createdAt               DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime           @updatedAt @db.Timestamptz(3)
+
+  venue     Venue      @relation(fields: [venueId], references: [id])
+  user      User       @relation(fields: [userId], references: [id])
+  season    Season     @relation(fields: [seasonId], references: [id])
+  court     Court      @relation(fields: [courtId], references: [id])
+  orderItem OrderItem? @relation(fields: [orderItemId], references: [id])
+  bookings  Booking[]
+
+  @@index([venueId])
+  @@index([userId])
+  @@index([seasonId])
+  @@index([courtId])
+  @@index([organisationId])
+}
+
+model Block {
+  id                 String    @id @default(cuid())
+  organisationId     String
+  venueId            String
+  courtId            String
+  clubId             String?
+  type               BlockType
+  title              String
+  startAt            DateTime  @db.Timestamptz(3)
+  endAt              DateTime  @db.Timestamptz(3)
+  // RFC 5545, z. B. FREQ=WEEKLY;BYDAY=MO,TU,WE,TH;UNTIL=20270430
+  rrule              String?
+  // überschreibt Venue.releaseHoursBefore
+  releaseHoursBefore Int?
+  createdByUserId    String
+  createdAt          DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime  @updatedAt @db.Timestamptz(3)
+
+  venue     Venue     @relation(fields: [venueId], references: [id])
+  court     Court     @relation(fields: [courtId], references: [id])
+  club      Club?     @relation(fields: [clubId], references: [id])
+  createdBy User      @relation("BlockCreatedBy", fields: [createdByUserId], references: [id])
+  bookings  Booking[]
+
+  @@index([venueId])
+  @@index([courtId])
+  @@index([organisationId])
+}
+
+model Booking {
+  id                String        @id @default(cuid())
+  organisationId    String
+  venueId           String
+  courtId           String
+  startAt           DateTime      @db.Timestamptz(3)
+  endAt             DateTime      @db.Timestamptz(3)
+  kind              BookingKind
+  status            BookingStatus
+  usageType         UsageType
+  source            BookingSource
+  userId            String?
+  clubId            String?
+  subscriptionId    String?
+  blockId           String?
+  orderItemId       String?
+  priceCents        Int?
+  priceBreakdown    Json?
+  holdExpiresAt     DateTime?     @db.Timestamptz(3)
+  confirmedAt       DateTime?     @db.Timestamptz(3)
+  cancelledAt       DateTime?     @db.Timestamptz(3)
+  cancelledByUserId String?
+  cancelReason      String?
+  // Trainingsgruppe o. Ä.
+  label             String?
+  note              String?
+  createdAt         DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime      @updatedAt @db.Timestamptz(3)
+
+  venue        Venue         @relation(fields: [venueId], references: [id])
+  court        Court         @relation(fields: [courtId], references: [id])
+  user         User?         @relation(fields: [userId], references: [id])
+  club         Club?         @relation(fields: [clubId], references: [id])
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+  block        Block?        @relation(fields: [blockId], references: [id])
+  orderItem    OrderItem?    @relation(fields: [orderItemId], references: [id])
+  cancelledBy  User?         @relation("BookingCancelledBy", fields: [cancelledByUserId], references: [id])
+
+  @@index([courtId, startAt])
+  @@index([venueId, startAt])
+  @@index([userId, startAt])
+  @@index([status, holdExpiresAt])
+  @@index([organisationId])
+}
+
+// ---------------------------------------------------------------------------
+// Bestellung, Zahlung, Rechnung
+// ---------------------------------------------------------------------------
+
+model Order {
+  id                      String      @id @default(cuid())
+  organisationId          String
+  venueId                 String
+  userId                  String
+  legalEntityId           String
+  // ORD-…, nicht die Rechnungsnummer
+  number                  String      @unique
+  status                  OrderStatus @default(DRAFT)
+  currency                String      @default("EUR")
+  subtotalCents           Int
+  taxCents                Int
+  totalCents              Int
+  // sepa_debit | card | paypal | transfer | cash | credit
+  paymentMethodType       String?
+  stripeCheckoutSessionId String?
+  stripePaymentIntentId   String?
+  paidAt                  DateTime?   @db.Timestamptz(3)
+  // Rechnungsempfänger-Snapshot
+  billingSnapshot         Json
+  termsVersion            String
+  createdAt               DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime    @updatedAt @db.Timestamptz(3)
+
+  venue    Venue       @relation(fields: [venueId], references: [id])
+  user     User        @relation(fields: [userId], references: [id])
+  items    OrderItem[]
+  payments Payment[]
+  invoices Invoice[]
+  refunds  Refund[]
+
+  @@index([venueId])
+  @@index([userId])
+  @@index([organisationId])
+  @@index([stripeCheckoutSessionId])
+  @@index([stripePaymentIntentId])
+}
+
+model OrderItem {
+  id                String      @id @default(cuid())
+  orderId           String
+  productType       ProductType
+  description       String
+  servicePeriodFrom DateTime    @db.Timestamptz(3)
+  servicePeriodTo   DateTime    @db.Timestamptz(3)
+  quantity          Int         @default(1)
+  unitCents         Int
+  taxRateBp         Int
+  netCents          Int
+  taxCents          Int
+  grossCents        Int
+  priceBreakdown    Json?
+  createdAt         DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime    @updatedAt @db.Timestamptz(3)
+
+  order         Order          @relation(fields: [orderId], references: [id])
+  // Rückrichtung der Verknüpfung: Booking.orderItemId / Subscription.orderItemId
+  bookings      Booking[]
+  subscriptions Subscription[]
+
+  @@index([orderId])
+}
+
+model Payment {
+  id          String          @id @default(cuid())
+  orderId     String
+  provider    PaymentProvider
+  // PaymentIntent-ID bzw. Mandatsreferenz+Datum
+  providerRef String?
+  method      String
+  amountCents Int
+  status      PaymentStatus
+  failureCode String?
+  receivedAt  DateTime?       @db.Timestamptz(3)
+  mandateId   String?
+  createdAt   DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime        @updatedAt @db.Timestamptz(3)
+
+  order   Order        @relation(fields: [orderId], references: [id])
+  mandate SepaMandate? @relation(fields: [mandateId], references: [id])
+  refunds Refund[]
+
+  @@index([orderId])
+  @@index([providerRef])
+}
+
+model Refund {
+  id                  String       @id @default(cuid())
+  paymentId           String
+  orderId             String
+  amountCents         Int
+  reason              String
+  providerRef         String?
+  status              RefundStatus @default(PENDING)
+  creditNoteInvoiceId String?
+  createdByUserId     String
+  createdAt           DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime     @updatedAt @db.Timestamptz(3)
+
+  payment           Payment  @relation(fields: [paymentId], references: [id])
+  order             Order    @relation(fields: [orderId], references: [id])
+  creditNoteInvoice Invoice? @relation("RefundCreditNote", fields: [creditNoteInvoiceId], references: [id])
+  createdBy         User     @relation("RefundCreatedBy", fields: [createdByUserId], references: [id])
+
+  @@index([paymentId])
+  @@index([orderId])
+}
+
+model Invoice {
+  id                String      @id @default(cuid())
+  organisationId    String
+  legalEntityId     String
+  // PB-2026-000123
+  number            String
+  type              InvoiceType @default(INVOICE)
+  orderId           String
+  userId            String
+  relatedInvoiceId  String?
+  issueDate         DateTime    @db.Timestamptz(3)
+  servicePeriodFrom DateTime    @db.Timestamptz(3)
+  servicePeriodTo   DateTime    @db.Timestamptz(3)
+  issuerSnapshot    Json
+  recipientSnapshot Json
+  lines             Json
+  netCents          Int
+  taxCents          Int
+  grossCents        Int
+  taxRateBp         Int
+  pdfKey            String
+  pdfSha256         String
+  sentAt            DateTime?   @db.Timestamptz(3)
+  issuedAt          DateTime    @db.Timestamptz(3)
+  createdAt         DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime    @updatedAt @db.Timestamptz(3)
+
+  legalEntity    LegalEntity @relation(fields: [legalEntityId], references: [id])
+  order          Order       @relation(fields: [orderId], references: [id])
+  user           User        @relation(fields: [userId], references: [id])
+  relatedInvoice Invoice?    @relation("InvoiceCancels", fields: [relatedInvoiceId], references: [id])
+  creditNotes    Invoice[]   @relation("InvoiceCancels")
+  refunds        Refund[]    @relation("RefundCreditNote")
+
+  // Lückenlose Nummern je Aussteller (Jahr steckt in der Nummer)
+  @@unique([legalEntityId, number])
+  @@index([orderId])
+  @@index([userId])
+  @@index([organisationId])
+}
+
+model InvoiceSequence {
+  id            String   @id @default(cuid())
+  legalEntityId String
+  year          Int
+  lastNumber    Int      @default(0)
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+
+  legalEntity LegalEntity @relation(fields: [legalEntityId], references: [id])
+
+  @@unique([legalEntityId, year])
+}
+
+model CreditLedger {
+  id             String    @id @default(cuid())
+  organisationId String
+  userId         String
+  deltaCents     Int
+  reason         String
+  refType        String?
+  refId          String?
+  expiresAt      DateTime? @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([organisationId])
+}
+
+// ---------------------------------------------------------------------------
+// Technik
+// ---------------------------------------------------------------------------
+
+model WebhookEvent {
+  id          String    @id @default(cuid())
+  provider    String
+  eventId     String
+  type        String
+  payload     Json
+  receivedAt  DateTime  @default(now()) @db.Timestamptz(3)
+  processedAt DateTime? @db.Timestamptz(3)
+  error       String?
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+
+  // Idempotenz (G4)
+  @@unique([provider, eventId])
+}
+
+model EmailLog {
+  id                String   @id @default(cuid())
+  userId            String?
+  to                String
+  template          String
+  templateVersion   String
+  refType           String?
+  refId             String?
+  providerMessageId String?
+  status            String
+  sentAt            DateTime @default(now()) @db.Timestamptz(3)
+  createdAt         DateTime @default(now()) @db.Timestamptz(3)
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organisationId String
+  actorUserId    String?
+  entity         String
+  entityId       String
+  action         String
+  diff           Json
+  at             DateTime @default(now()) @db.Timestamptz(3)
+
+  actor User? @relation("AuditActor", fields: [actorUserId], references: [id])
+
+  @@index([organisationId, at])
+  @@index([entity, entityId])
+}
+
+// ---------------------------------------------------------------------------
+// Auth.js-Adapter-Tabellen (https://authjs.dev/getting-started/adapters/prisma)
+// ---------------------------------------------------------------------------
 
 model Account {
   id                String  @id @default(cuid())
@@ -98,7 +845,7 @@ model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
   userId       String
-  expires      DateTime
+  expires      DateTime @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -106,7 +853,7 @@ model Session {
 model VerificationToken {
   identifier String
   token      String
-  expires    DateTime
+  expires    DateTime @db.Timestamptz(3)
 
   @@unique([identifier, token])
 }

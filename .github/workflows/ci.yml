@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: dtd
+          POSTGRES_PASSWORD: ci_only
+          POSTGRES_DB: dtd_booking_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dtd -d dtd_booking_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://dtd:ci_only@localhost:5432/dtd_booking_test
+      DATABASE_URL_TEST: postgresql://dtd:ci_only@localhost:5432/dtd_booking_test
+      AUTH_SECRET: ci-dummy-secret-not-used-in-production
+      MAIL_FROM: ci@localhost
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Apply migrations
+        run: pnpm prisma migrate deploy
+
+      - name: Integration tests
+        run: pnpm test:int
+
+      - name: Build
+        run: pnpm build

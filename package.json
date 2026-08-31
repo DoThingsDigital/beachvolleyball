@@ -14,7 +14,8 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "db:up": "docker compose up -d db",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "test:int": "vitest run --config vitest.int.config.mts"
   },
   "dependencies": {
     "@auth/core": "0.41.3",

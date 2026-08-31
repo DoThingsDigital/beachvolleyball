@@ -17,4 +17,96 @@ datasource db {
   provider = "postgresql"
 }
 
-// Domain-Modelle folgen mit Ticket 1.1 (docs/02_DATENMODELL.md).
+// Auth-Grundlage (Ticket 0.4). Vollständiges Domain-Schema folgt mit Ticket 1.1
+// (docs/02_DATENMODELL.md); die Modelle hier sind das dort definierte Subset.
+
+enum MembershipRole {
+  CUSTOMER
+  STAFF
+  ADMIN
+  SUPERADMIN
+}
+
+model Organisation {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships Membership[]
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  phone         String?
+  passwordHash  String?
+  // Lastenheft nennt das Feld emailVerifiedAt; hier Auth.js-Konvention (Adapter).
+  emailVerified DateTime?
+  image         String?
+  sepaBlocked   Boolean   @default(false)
+  anonymizedAt  DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  memberships Membership[]
+  accounts    Account[]
+  sessions    Session[]
+}
+
+model Membership {
+  id             String         @id @default(cuid())
+  userId         String
+  organisationId String
+  role           MembershipRole @default(CUSTOMER)
+  venueIds       String[]       @default([])
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organisationId])
+  @@index([organisationId])
+}
+
+// --- Auth.js-Adapter-Tabellen (https://authjs.dev/getting-started/adapters/prisma) ---
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}

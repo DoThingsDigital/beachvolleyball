@@ -10,10 +10,10 @@ Definition of Done (global): Code gemerged, Tests grün, Migration angewendet, i
 
 | # | Ticket | h | Ref | DoD |
 |---|---|---|---|---|
-| [ ] 0.1 | Stack mit Juri festziehen, Repo anlegen, `CLAUDE.md` einchecken | 2 | §5 Rahmen | Entscheidung dokumentiert in `00_PROJEKTRAHMEN.md` §8 |
+| [~] 0.1 | Stack mit Juri festziehen, Repo anlegen, `CLAUDE.md` einchecken | 2 | §5 Rahmen | Entscheidung dokumentiert in `00_PROJEKTRAHMEN.md` §8 — Stack vorläufig fix (31.08.), Juri-Review steht aus |
 | [x] 0.2 | Next.js + TypeScript strict + Tailwind + shadcn/ui, ESLint/Prettier, Vitest, Playwright | 3 | NF9 | `pnpm test` und `pnpm e2e` laufen leer durch |
 | [x] 0.3 | Postgres (lokal Docker + Staging EU), Prisma, Migrations-Pipeline mit Custom-SQL-Schritt | 3 | NF6 | `prisma migrate dev` inkl. `btree_gist` |
-| [ ] 0.4 | Auth.js v5: Magic Link + Passwort, Session, Rollen-Middleware | 4 | A1 | Login/Logout E2E |
+| [x] 0.4 | Auth.js v5: Magic Link + Passwort, Session, Rollen-Middleware | 4 | A1 | Login/Logout E2E |
 | [ ] 0.5 | CI (Lint, Test, Build), Staging-Deploy, Sentry, `.env.example` | 2 | NF12 | Preview-Deploy pro PR |
 | [ ] 0.6 | Stripe-Testaccount, Webhook-Endpunkt mit Signaturprüfung, Stripe CLI lokal | 1 | G4 | Test-Event landet in `WebhookEvent` |
 | [ ] 0.7 | Hostinger-VPS: Standort DE prüfen, Ubuntu 24.04 härten (SSH-Key, ufw, fail2ban, unattended-upgrades), Coolify mit Staging + Prod, Postgres-Container, nächtlicher `pg_dump` auf externen S3, Restore-Test | 3 | NF6 | Restore aus Backup einmal erfolgreich durchgespielt |

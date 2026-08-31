@@ -92,7 +92,7 @@ Kapazität: Janick 20–25 h/Woche mit Claude Code, Juri 3–5 h/Woche Review/Pa
 
 ## 8. Offene Entscheidungen
 
-1. Stack-Freigabe (Juri)
+1. Stack-Freigabe (Juri) — *vorläufig entschieden am 31.08.2026 (Janick): Stack wie §5 umgesetzt (Next.js 15.5, Postgres 16, Prisma 7 mit Driver-Adapter, Tailwind v4/shadcn, Vitest/Playwright). Juri-Review folgt nachgelagert; Abweichungen werden als Migration behandelt.*
 2. Zahlungsempfänger bei Plan B: Stripe-Account des Vereins vs. Stripe Connect
 3. Preisliste Winter 1: Peak/Off-Peak, Wochenende, Mitgliederpreis, Dauerplatz-Rabatt → Input aus `Kalkulationstool_Picco_Beach_v2.xlsx`
 4. Storno-Regel (Vorschlag: bis 24 h vorher kostenlos, danach 100 %; bei Hallenstörung Guthaben statt Rückzahlung)

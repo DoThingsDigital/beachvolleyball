@@ -1,0 +1,20 @@
+// Migrations-Workflow mit Custom-SQL (z. B. Exclusion-Constraints, Extensions):
+//   1. Schema ändern, dann `pnpm prisma migrate dev --create-only --name <name>`
+//   2. Erzeugtes prisma/migrations/<ts>_<name>/migration.sql um Custom-SQL ergänzen
+//   3. `pnpm prisma migrate dev` wendet die Migration an
+// Prisma diff-t nur das Schema; reines Custom-SQL (btree_gist, EXCLUDE, Trigger)
+// lebt ausschließlich in den migration.sql-Dateien. Nie `migrate reset` ohne Not.
+//
+// Prisma 7: Die Verbindungs-URL steht in prisma.config.ts (CLI/Migrate) bzw.
+// im Driver-Adapter in src/db/client.ts (Laufzeit), nicht mehr hier.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Domain-Modelle folgen mit Ticket 1.1 (docs/02_DATENMODELL.md).

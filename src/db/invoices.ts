@@ -38,10 +38,14 @@ export async function createInvoiceWithNumber(
 
   return prisma.$transaction(
     async (tx) => {
+      // ON CONFLICT ohne Spaltenliste: die id ist deterministisch
+      // (seq-<entity>-<jahr>), parallele Erst-Inserts kollidieren daher
+      // zuerst am Primary Key – auch dieser Konflikt heißt nur
+      // "Zeile existiert schon" und darf kein Fehler sein.
       await tx.$executeRaw`
         INSERT INTO "InvoiceSequence" ("id", "legalEntityId", "year", "lastNumber", "createdAt", "updatedAt")
         VALUES (${`seq-${input.legalEntityId}-${year}`}, ${input.legalEntityId}, ${year}, 0, now(), now())
-        ON CONFLICT ("legalEntityId", "year") DO NOTHING`;
+        ON CONFLICT DO NOTHING`;
 
       const rows = await tx.$queryRaw<{ lastNumber: number }[]>`
         UPDATE "InvoiceSequence"

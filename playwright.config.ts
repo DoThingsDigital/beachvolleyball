@@ -36,7 +36,8 @@ export default defineConfig({
   // Prod-Server ist stabil und schneller. Ein laufender Dev-Server auf
   // :3000 muss vor `pnpm e2e` gestoppt werden (reuse bewusst aus).
   webServer: {
-    command: "pnpm build && pnpm start",
+    // CI baut in einem eigenen Step (ci.yml) – dort nur noch starten
+    command: process.env.CI ? "pnpm start" : "pnpm build && pnpm start",
     url: "http://localhost:3000",
     reuseExistingServer: false,
     timeout: 420_000,

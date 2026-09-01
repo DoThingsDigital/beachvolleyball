@@ -83,6 +83,7 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       # 3.7: kompletter Kaufflow (Registrierung → Kauf → signierte Webhooks →
-      # Rechnung) läuft gegen den Dev-Server aus playwright.config webServer
+      # Rechnung) läuft gegen den Production-Server (next start nutzt den
+      # Build aus dem Build-Step; playwright.config startet in CI nur noch)
       - name: E2E tests
         run: pnpm e2e

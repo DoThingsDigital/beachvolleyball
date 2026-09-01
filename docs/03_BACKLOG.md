@@ -39,7 +39,7 @@ Definition of Done (global): Code gemerged, Tests grün, Migration angewendet, i
 | # | Ticket | h | Ref | DoD |
 |---|---|---|---|---|
 | [x] 2.1 | Verfügbarkeitslogik Dauerplatz: freie Kombinationen (Court, Wochentag, Startzeit, Dauer) über die Saison unter Berücksichtigung von Blocks und bestehenden Subscriptions | 5 | F1, D4 | Unit-Tests; Performance < 300 ms |
-| [ ] 2.2 | Vorverkaufs-UI: Raster Wochentag × Zeitfenster, Auswahl Dauer/Platzgruppe, Preisanzeige mit Terminanzahl | 6 | F2 | Mobile 375 px ohne horizontales Scrollen |
+| [x] 2.2 | Vorverkaufs-UI: Raster Wochentag × Zeitfenster, Auswahl Dauer/Platzgruppe, Preisanzeige mit Terminanzahl | 6 | F2 | Mobile 375 px ohne horizontales Scrollen |
 | [ ] 2.3 | Order/OrderItem anlegen, Subscription `PENDING` + Bookings `HOLD` materialisieren, Hold-Ablauf per Cron | 4 | G1, D3 | Hold-Cleanup-Job idempotent |
 | [ ] 2.4 | Stripe Checkout Session (SEPA, Karte; PayPal per Flag), Stripe-Customer pro User, `setup_future_usage` | 4 | G2 | Testkauf mit SEPA-Testkonto |
 | [ ] 2.5 | Webhooks: `checkout.session.completed`, `payment_intent.processing/succeeded/payment_failed`, `charge.refunded`, `charge.dispute.created`; Idempotenz; Order-/Booking-Statusübergänge; `SepaMandate` speichern | 6 | G3–G5 | Tests mit Stripe-Fixture-Events in beliebiger Reihenfolge |

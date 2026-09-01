@@ -53,6 +53,10 @@ test("Admin-Bereich für Admin-Rolle erreichbar, Layout sichtbar", async ({
   await expect(
     page.getByRole("navigation", { name: "Admin-Navigation" }),
   ).toBeVisible();
+
+  // Staff sieht im öffentlichen Header den Backoffice-Einstieg
+  await page.goto("/");
+  await expect(page.getByTestId("backoffice-link")).toBeVisible();
 });
 
 test("Kunde ohne Staff-Rolle wird vom Admin auf /konto umgeleitet", async ({
@@ -73,4 +77,9 @@ test("Kunde ohne Staff-Rolle wird vom Admin auf /konto umgeleitet", async ({
   await page.goto("/admin");
   await expect(page).toHaveURL(/\/konto/);
   await expect(page.getByRole("heading", { name: "Mein Konto" })).toBeVisible();
+
+  // Kunden sehen keinen Backoffice-Einstieg im Header
+  await page.goto("/");
+  await expect(page.getByRole("link", { name: "Feld buchen" })).toBeVisible();
+  await expect(page.getByTestId("backoffice-link")).toHaveCount(0);
 });

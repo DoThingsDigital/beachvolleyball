@@ -1,9 +1,11 @@
 import { requireStaff } from "@/src/auth/guards";
+import { findClubAdmins } from "@/src/db/club-memberships";
 import { createRepositories } from "@/src/db/repositories";
 
 import { getSelectedVenue } from "../../_lib/selected-venue";
 import { CrudForm, type CrudField } from "../_components/crud-form";
 import { createClub, updateClub } from "./actions";
+import { ClubAdmins, type ClubAdminEntry } from "./club-admins";
 
 function clubFields(club?: {
   name: string;
@@ -25,6 +27,17 @@ export default async function VereinePage() {
     return <p className="text-muted-foreground text-sm">Kein Standort angelegt.</p>;
   }
   const clubs = await repos.clubs.findManyForVenue(venue.id);
+  const adminsByClub = new Map<string, ClubAdminEntry[]>();
+  for (const club of clubs) {
+    adminsByClub.set(
+      club.id,
+      (await findClubAdmins(staff.ctx, club.id)).map((m) => ({
+        membershipId: m.id,
+        name: m.user.name,
+        email: m.user.email,
+      })),
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -32,7 +45,7 @@ export default async function VereinePage() {
 
       <ul className="flex flex-col gap-4">
         {clubs.map((club) => (
-          <li key={club.id} className="rounded-md border p-3">
+          <li key={club.id} className="flex flex-col gap-3 rounded-md border p-3">
             <CrudForm
               action={updateClub}
               fields={clubFields(club)}
@@ -40,6 +53,12 @@ export default async function VereinePage() {
               submitLabel="Speichern"
               compact
             />
+            <div className="border-t pt-3">
+              <ClubAdmins
+                clubId={club.id}
+                admins={adminsByClub.get(club.id) ?? []}
+              />
+            </div>
           </li>
         ))}
       </ul>
@@ -57,8 +76,9 @@ export default async function VereinePage() {
 
       <p className="text-muted-foreground text-xs">
         Mitgliedschaften verwaltet der Vereins-Admin selbst unter /verein
-        (Freigabe von Anfragen, Listenimport). Vereins-Admins entstehen über
-        eine aktive Mitgliedschaft mit Admin-Kennzeichen.
+        (Freigabe von Anfragen, Listenimport, Kontingent). Hier ernennst du,
+        wer das für den Verein darf – die Person braucht ein registriertes
+        Konto.
       </p>
     </div>
   );

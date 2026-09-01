@@ -102,6 +102,64 @@ export async function setClubMembershipStatus(
   return result.count > 0;
 }
 
+/** Betreiber ernennt einen Vereins-Admin per E-Mail (Konto muss existieren
+ *  und zum Mandanten gehören); legt die Mitgliedschaft bei Bedarf an. */
+export async function setClubAdminByEmail(
+  ctx: TenantContext,
+  clubId: string,
+  email: string,
+  actorUserId: string,
+): Promise<"ok" | "not_found"> {
+  const user = await prisma.user.findFirst({
+    where: {
+      email: email.toLowerCase(),
+      memberships: { some: { organisationId: ctx.organisationId } },
+    },
+    select: { id: true },
+  });
+  if (!user) return "not_found";
+
+  await prisma.clubMembership.upsert({
+    where: { userId_clubId: { userId: user.id, clubId } },
+    update: { status: "ACTIVE", isClubAdmin: true, verifiedByUserId: actorUserId },
+    create: {
+      organisationId: ctx.organisationId,
+      userId: user.id,
+      clubId,
+      status: "ACTIVE",
+      isClubAdmin: true,
+      verifiedByUserId: actorUserId,
+    },
+  });
+  return "ok";
+}
+
+/** Admin-Rechte entziehen; die Mitgliedschaft selbst bleibt aktiv. */
+export async function revokeClubAdmin(
+  ctx: TenantContext,
+  clubId: string,
+  membershipId: string,
+): Promise<boolean> {
+  const res = await prisma.clubMembership.updateMany({
+    where: { id: membershipId, clubId, organisationId: ctx.organisationId },
+    data: { isClubAdmin: false },
+  });
+  return res.count > 0;
+}
+
+export function findClubAdmins(ctx: TenantContext, clubId: string) {
+  return prisma.clubMembership.findMany({
+    where: {
+      clubId,
+      organisationId: ctx.organisationId,
+      isClubAdmin: true,
+      status: "ACTIVE",
+    },
+    include: { user: { select: { email: true, name: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
 /** CSV-Import: bekannte E-Mails werden aktiviert (bestehende Anfragen
  *  freigegeben, sonst neu angelegt); unbekannte werden gemeldet. */
 export async function importClubMembers(

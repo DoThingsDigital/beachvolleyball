@@ -2,10 +2,13 @@ import { beforeAll, afterAll, describe, expect, it } from "vitest";
 
 import { prisma } from "@/src/db/client";
 import {
+  findClubAdmins,
   findClubMembers,
   importClubMembers,
   isActiveClubMember,
   requestClubMembership,
+  revokeClubAdmin,
+  setClubAdminByEmail,
   setClubMembershipStatus,
 } from "@/src/db/club-memberships";
 import { cleanupTestDb } from "@/src/db/test/cleanup";
@@ -280,6 +283,57 @@ describe("Mitgliedschaftsanfrage und Freigabe (4.6, A4)", () => {
       clubAdminId,
     );
     expect(ok).toBe(false);
+  });
+});
+
+describe("Vereins-Admin ernennen/entziehen (4.6-Nachtrag)", () => {
+  it("Ernennung per E-Mail aktiviert Mitgliedschaft mit Admin-Flag", async () => {
+    const vorstand = await prisma.user.create({
+      data: { email: "int-test-cm-vorstand@example.org", name: "CM Vorstand" },
+    });
+    await prisma.membership.create({
+      data: { userId: vorstand.id, organisationId: orgId, role: "CUSTOMER" },
+    });
+
+    expect(
+      await setClubAdminByEmail(
+        ctx(),
+        clubId,
+        "int-test-cm-vorstand@example.org",
+        clubAdminId,
+      ),
+    ).toBe("ok");
+
+    const admins = await findClubAdmins(ctx(), clubId);
+    const entry = admins.find((a) => a.userId === vorstand.id);
+    expect(entry).toBeDefined();
+    expect(await isActiveClubMember(ctx(), vorstand.id)).toBe(true);
+
+    // Entziehen: Admin-Flag weg, Mitgliedschaft bleibt aktiv
+    expect(await revokeClubAdmin(ctx(), clubId, entry!.id)).toBe(true);
+    expect(
+      (await findClubAdmins(ctx(), clubId)).some((a) => a.userId === vorstand.id),
+    ).toBe(false);
+    expect(await isActiveClubMember(ctx(), vorstand.id)).toBe(true);
+  });
+
+  it("unbekannte oder mandantenfremde E-Mail wird abgelehnt", async () => {
+    expect(
+      await setClubAdminByEmail(ctx(), clubId, "niemand@example.org", clubAdminId),
+    ).toBe("not_found");
+
+    // Konto ohne Mandanten-Membership zählt nicht
+    await prisma.user.create({
+      data: { email: "int-test-cm-fremd@example.org" },
+    });
+    expect(
+      await setClubAdminByEmail(
+        ctx(),
+        clubId,
+        "int-test-cm-fremd@example.org",
+        clubAdminId,
+      ),
+    ).toBe("not_found");
   });
 });
 

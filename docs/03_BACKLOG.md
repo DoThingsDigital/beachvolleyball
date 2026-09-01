@@ -94,7 +94,7 @@ Definition of Done (global): Code gemerged, Tests grün, Migration angewendet, i
 | [x] 6.2 | Report Umsatz (Zeitraum, Produktart, Zahlart, Erstattungen) mit CSV | 4 | L2 | Summen stimmen mit Stripe-Auszahlungen überein (Basis paidAt; Abgleich nach Go-Live prüfen) |
 | [x] 6.3 | **Report Vereinsnutzung** mit vier Quoten, Definitionstext, CSV + PDF | 6 | L3 | Sportamt-tauglicher Export |
 | [x] 6.4 | Report Dauerplatz-Quote | 2 | L4 | – |
-| [ ] 6.5 | Datenauskunft/Anonymisierung im Admin | 3 | A5 | Rechnungen bleiben erhalten |
+| [x] 6.5 | Datenauskunft/Anonymisierung im Admin | 3 | A5 | Rechnungen bleiben erhalten |
 | [ ] 6.6 | Go-Live-Checkliste Stufe 2, Lasttest Kalender, Uptime-Alarme | 5 | NF12 | – |
 
 **Stufe 2 live: vor Hallenöffnung** (nach aktuellem Stand KW 44, nachziehen falls Öffnung später).

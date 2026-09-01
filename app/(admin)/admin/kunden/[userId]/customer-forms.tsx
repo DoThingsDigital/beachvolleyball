@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 
 import {
   adminCancelSubscription,
+  anonymizeCustomer,
   saveCustomerNotes,
   type CustomerActionState,
 } from "../actions";
@@ -106,6 +107,32 @@ export function CancelSubscriptionForm({
       <div className="w-full">
         <Feedback state={state} />
       </div>
+    </form>
+  );
+}
+
+export function AnonymizeForm({ userId }: { userId: string }) {
+  const [state, action, pending] = useActionState(
+    anonymizeCustomer,
+    initialState,
+  );
+  return (
+    <form action={action} className="flex flex-col gap-2" data-testid="anonymize-form">
+      <input type="hidden" name="userId" value={userId} />
+      <label className="flex items-start gap-2 text-sm">
+        <input type="checkbox" name="confirm" className="mt-0.5 size-4" />
+        <span>
+          Personenbezug unwiderruflich entfernen (Name, E-Mail, Telefon,
+          Adresse, Zugang, Mail-Adressen in Logs). Rechnungen und Belegungen
+          bleiben aus steuer- und betriebsrechtlichen Gründen erhalten.
+        </span>
+      </label>
+      <div>
+        <Button type="submit" size="sm" variant="destructive" disabled={pending}>
+          {pending ? "…" : "Kunden anonymisieren"}
+        </Button>
+      </div>
+      <Feedback state={state} />
     </form>
   );
 }

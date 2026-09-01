@@ -8,6 +8,7 @@ import {
   findCustomerDetail,
   updateCustomerNotes,
 } from "@/src/db/customers";
+import { anonymizeUser } from "@/src/db/privacy";
 import { createRepositories } from "@/src/db/repositories";
 import { DomainError } from "@/src/domain/errors";
 import { cancelSubscription } from "@/src/services/subscriptions";
@@ -97,4 +98,51 @@ export async function adminCancelSubscription(
     if (error instanceof DomainError) return { error: error.message };
     throw error;
   }
+}
+
+// --- Anonymisierung (Ticket 6.5, A5) ---------------------------------------
+
+const anonymizeSchema = z.object({
+  userId: z.string().min(1),
+  confirm: z.boolean().refine((v) => v === true, "Bitte bestätigen (Checkbox)."),
+});
+
+export async function anonymizeCustomer(
+  _prev: CustomerActionState,
+  formData: FormData,
+): Promise<CustomerActionState> {
+  const staff = await requireStaff();
+  const parsed = anonymizeSchema.safeParse({
+    userId: formData.get("userId"),
+    confirm: formData.get("confirm") === "on",
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Ungültige Eingabe." };
+  }
+
+  const result = await anonymizeUser(staff.ctx, parsed.data.userId);
+  if (!result) return { error: "Kunde nicht gefunden." };
+  if (!result.ok) {
+    return {
+      error:
+        result.blocker === "FUTURE_BOOKINGS"
+          ? "Der Kunde hat zukünftige aktive Buchungen – erst stornieren."
+          : "Der Kunde hat laufende Dauerplätze – erst kündigen.",
+    };
+  }
+
+  const repos = createRepositories(staff.ctx);
+  await repos.auditLogs.create({
+    actorUserId: staff.userId,
+    entity: "User",
+    entityId: parsed.data.userId,
+    action: "user.anonymize",
+    diff: { alreadyAnonymized: result.alreadyAnonymized },
+  });
+  revalidatePath(`/admin/kunden/${parsed.data.userId}`);
+  return {
+    ok: result.alreadyAnonymized
+      ? "Kunde war bereits anonymisiert."
+      : "Kunde anonymisiert. Rechnungen und Belegungen bleiben erhalten.",
+  };
 }

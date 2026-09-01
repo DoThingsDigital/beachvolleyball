@@ -59,6 +59,7 @@ export function findCustomerDetail(ctx: TenantContext, userId: string) {
           sepaBlocked: true,
           notes: true,
           termsAcceptedVersion: true,
+          anonymizedAt: true,
           createdAt: true,
           sepaMandates: {
             select: {

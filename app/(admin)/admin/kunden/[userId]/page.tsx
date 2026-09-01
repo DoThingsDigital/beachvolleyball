@@ -6,7 +6,11 @@ import { requireStaff } from "@/src/auth/guards";
 import { findCustomerDetail } from "@/src/db/customers";
 
 import { ORDER_STATUS_LABELS } from "../../bestellungen/status-labels";
-import { CancelSubscriptionForm, NotesForm } from "./customer-forms";
+import {
+  AnonymizeForm,
+  CancelSubscriptionForm,
+  NotesForm,
+} from "./customer-forms";
 
 export default async function KundenDetailPage({
   params,
@@ -116,6 +120,25 @@ export default async function KundenDetailPage({
       </section>
 
       <NotesForm userId={user.id} notes={user.notes ?? ""} />
+
+      <section className="flex flex-col gap-2 border-t pt-4">
+        <h2 className="text-lg font-medium">Datenschutz</h2>
+        <p className="text-sm">
+          <a
+            href={`/admin/kunden/${user.id}/datenauskunft`}
+            className="text-coral-deep font-bold hover:underline"
+          >
+            Datenauskunft als JSON herunterladen ↓
+          </a>
+        </p>
+        {user.anonymizedAt ? (
+          <p className="text-muted-foreground text-sm">
+            Bereits anonymisiert am {formatDate(user.anonymizedAt)}.
+          </p>
+        ) : (
+          <AnonymizeForm userId={user.id} />
+        )}
+      </section>
     </div>
   );
 }

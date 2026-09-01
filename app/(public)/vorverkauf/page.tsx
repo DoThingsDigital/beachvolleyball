@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 import { formatCents } from "@/lib/format";
+import { auth } from "@/src/auth";
+import { isActiveClubMember } from "@/src/db/club-memberships";
 import { getPublicShopContext } from "@/src/services/public-context";
 import { getSubscriptionAvailability } from "@/src/services/subscription-availability";
 import { getSubscriptionQuote } from "@/src/services/subscription-quote";
@@ -9,8 +11,8 @@ import { CheckoutButton } from "./checkout-button";
 
 // Vorverkaufs-UI (Ticket 2.2, F2): Raster Wochentag × Startzeit mit Anzahl
 // freier Plätze; Auswahl über URL-Parameter (serverseitig gerendert).
-// Angezeigt wird der Nichtmitgliederpreis (C4); Mitgliederpreise greifen
-// mit Ticket 4.6 im Checkout.
+// Gäste sehen den Nichtmitgliederpreis (C4); verifizierte Vereinsmitglieder
+// ihren Mitgliederpreis (Ticket 4.6, A4).
 
 const WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"] as const;
 
@@ -100,6 +102,11 @@ export default async function VorverkaufPage({
     ? Number(params.dauer)
     : (fittingDurations[0] ?? null);
 
+  const session = await auth();
+  const isMember = session?.user
+    ? await isActiveClubMember(ctx, session.user.id)
+    : false;
+
   const quote =
     weekday && startTime && selectedCourt && durationMin
       ? await getSubscriptionQuote(ctx, {
@@ -109,7 +116,7 @@ export default async function VorverkaufPage({
           weekday,
           startTime,
           durationMin,
-          isMember: false,
+          isMember,
         }).catch(() => null)
       : null;
 
@@ -182,7 +189,10 @@ export default async function VorverkaufPage({
           </tbody>
         </table>
         <p className="text-muted-foreground text-xs">
-          Zahl = freie Plätze · Preise sind Nichtmitgliederpreise
+          Zahl = freie Plätze
+          {isMember
+            ? " · dein Mitgliederpreis wird unten angezeigt"
+            : " · Preise sind Nichtmitgliederpreise"}
         </p>
       </section>
 
@@ -259,6 +269,11 @@ export default async function VorverkaufPage({
               <dt className="text-muted-foreground font-medium">Gesamtpreis</dt>
               <dd className="font-semibold" data-testid="quote-total">
                 {formatCents(quote.totalCents)}
+                {quote.memberRateApplied ? (
+                  <span className="text-ice-deep bg-ice/45 ml-2 rounded-full px-2 py-0.5 text-xs font-semibold">
+                    Mitgliederpreis
+                  </span>
+                ) : null}
               </dd>
             </dl>
           ) : null}

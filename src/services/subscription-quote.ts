@@ -22,6 +22,8 @@ export type SubscriptionQuote = {
   lastOccurrenceCents: number;
   discountCents: number;
   discountBp: number;
+  /** true, wenn ein Mitgliedertarif in den Preis eingeflossen ist (A4) */
+  memberRateApplied: boolean;
 };
 
 function instantToLocalDate(instant: Date, timezone: string): string {
@@ -81,7 +83,7 @@ export async function getSubscriptionQuote(
   // Preis je Termin ist konstant (fester Wochentag + lokale Uhrzeit);
   // berechnet am ersten Termin, DST-sicher über lokale Zeit.
   const first = occurrences[0]!;
-  const { grossCents } = computePrice({
+  const { grossCents, memberRateApplied } = computePrice({
     slotMinutes: venue.slotMinutes,
     timezone: venue.timezone,
     rules,
@@ -105,5 +107,6 @@ export async function getSubscriptionQuote(
     lastOccurrenceCents: price.lastOccurrenceCents,
     discountCents: price.discountCents,
     discountBp: season.subscriptionDiscountBp,
+    memberRateApplied,
   };
 }

@@ -33,6 +33,8 @@ export type SlotBreakdown = {
 export type PriceResult = {
   grossCents: number;
   breakdown: SlotBreakdown[];
+  /** true, wenn mindestens ein Slot mit Mitgliedertarif bepreist wurde (A4) */
+  memberRateApplied: boolean;
 };
 
 function isoWeekday(d: TZDate): number {
@@ -71,6 +73,7 @@ export function computePrice(params: {
   }
 
   const breakdown: SlotBreakdown[] = [];
+  let memberRateApplied = false;
   for (let t = startAt.getTime(); t < endAt.getTime(); t += slotMs) {
     const slotStart = new Date(t);
     const local = new TZDate(t, timezone);
@@ -97,10 +100,9 @@ export function computePrice(params: {
       r.priority > best.priority ? r : best,
     );
 
-    const rate =
-      isMember && rule.memberPricePerHourCents != null
-        ? rule.memberPricePerHourCents
-        : rule.pricePerHourCents;
+    const memberRate = isMember ? (rule.memberPricePerHourCents ?? null) : null;
+    const rate = memberRate ?? rule.pricePerHourCents;
+    if (memberRate != null) memberRateApplied = true;
     const slotCents = Math.round((rate * slotMinutes) / 60);
 
     breakdown.push({
@@ -115,6 +117,8 @@ export function computePrice(params: {
   return {
     grossCents: breakdown.reduce((sum, s) => sum + s.slotCents, 0),
     breakdown,
+    /** true, wenn mindestens ein Slot mit Mitgliedertarif bepreist wurde */
+    memberRateApplied,
   };
 }
 

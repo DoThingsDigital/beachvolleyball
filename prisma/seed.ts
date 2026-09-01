@@ -234,6 +234,21 @@ async function main() {
       },
     });
 
+    // Admin ist zugleich Vereins-Admin des Seed-Vereins (Ticket 4.6), damit
+    // die Vereinsverwaltung (/verein) lokal ohne Zusatzschritte testbar ist.
+    await prisma.clubMembership.upsert({
+      where: { userId_clubId: { userId: admin.id, clubId: club.id } },
+      update: { status: "ACTIVE", isClubAdmin: true },
+      create: {
+        organisationId: organisation.id,
+        userId: admin.id,
+        clubId: club.id,
+        status: "ACTIVE",
+        isClubAdmin: true,
+        verifiedByUserId: admin.id,
+      },
+    });
+
     // Vorvertrag: zwei Plätze Mo–Do 18–22 Uhr über die Saison.
     // 01.10.2026 ist ein Donnerstag (CEST, +02:00).
     for (const court of courts.slice(0, 2)) {

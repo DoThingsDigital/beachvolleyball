@@ -8,11 +8,13 @@ import { findProfile } from "@/src/db/users";
 import { getPublicShopContext } from "@/src/services/public-context";
 
 import { findUpcomingBookingsForUser } from "@/src/db/bookings";
+import { findClubsWithMyMembership } from "@/src/db/club-memberships";
 import { formatDateTime } from "@/lib/format";
 
 import { logout } from "@/app/(public)/login/actions";
 
 import { BookingList, type MyBooking } from "./booking-list";
+import { MembershipSection, type ClubWithStatus } from "./membership-section";
 import { ProfileForm } from "./profile-form";
 
 const SUB_STATUS_LABELS: Record<string, string> = {
@@ -33,6 +35,19 @@ export default async function KontoPage() {
   const subscriptions = shop
     ? await createRepositories(shop.ctx).subscriptions.findManyForUser(
         session.user.id,
+      )
+    : [];
+
+  const clubs: ClubWithStatus[] = shop
+    ? (await findClubsWithMyMembership(shop.ctx, session.user.id)).map(
+        (club) => ({
+          id: club.id,
+          name: club.name,
+          status:
+            (club.clubMemberships[0]?.status as ClubWithStatus["status"]) ??
+            "NONE",
+          isClubAdmin: club.clubMemberships[0]?.isClubAdmin ?? false,
+        }),
       )
     : [];
 
@@ -77,6 +92,8 @@ export default async function KontoPage() {
           </span>
         ) : null}
       </p>
+      <MembershipSection clubs={clubs} />
+
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-medium">Meine Buchungen</h2>
         <BookingList bookings={upcoming} />

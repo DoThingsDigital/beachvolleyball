@@ -1,3 +1,4 @@
+import { isActiveClubMember } from "@/src/db/club-memberships";
 import {
   createSubscriptionOrderTx,
   expireHoldsTx,
@@ -75,6 +76,8 @@ export async function createSubscriptionOrder(
     throw new DomainError("NOT_FOUND", "Rechnungsaussteller nicht konfiguriert.");
   }
 
+  // A4: Mitgliederpreis nur bei aktiver Vereinsmitgliedschaft
+  const isMember = await isActiveClubMember(ctx, params.userId);
   const quote = await getSubscriptionQuote(ctx, {
     venueId: venue.id,
     seasonId: season.id,
@@ -82,7 +85,7 @@ export async function createSubscriptionOrder(
     weekday: params.weekday,
     startTime: params.startTime,
     durationMin: params.durationMin,
-    isMember: false, // Mitgliederpreise folgen mit Ticket 4.6
+    isMember,
   });
 
   const { netCents, taxCents } = splitGross(
@@ -124,6 +127,7 @@ export async function createSubscriptionOrder(
         discountCents: quote.discountCents,
         perOccurrenceCents: quote.perOccurrenceCents,
         lastOccurrenceCents: quote.lastOccurrenceCents,
+        memberRateApplied: quote.memberRateApplied,
       },
       billingSnapshot: {
         name: profile.name,

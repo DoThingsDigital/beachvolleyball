@@ -2,6 +2,8 @@ import { TZDate } from "@date-fns/tz";
 import Link from "next/link";
 
 import { formatCents, formatWeekday } from "@/lib/format";
+import { auth } from "@/src/auth";
+import { isActiveClubMember } from "@/src/db/club-memberships";
 import { DomainError } from "@/src/domain/errors";
 import { addDays, isoWeekdayOfDate } from "@/src/domain/week-occupancy";
 import { getWeekOccupancy } from "@/src/services/occupancy";
@@ -118,8 +120,18 @@ export default async function KalenderPage({
     ? Number(params.dauer)
     : (fittingDurations[0] ?? null);
 
-  // Preisvorschau (C4, Nichtmitgliederpreis)
-  let quote: { grossCents: number; description: string } | null = null;
+  // Preisvorschau (C4): Gast sieht Nichtmitgliederpreis, eingeloggte
+  // Mitglieder ihren Mitgliederpreis (A4)
+  const session = await auth();
+  const isMember = session?.user
+    ? await isActiveClubMember(ctx, session.user.id)
+    : false;
+
+  let quote: {
+    grossCents: number;
+    description: string;
+    memberRateApplied: boolean;
+  } | null = null;
   let quoteError: string | null = null;
   if (selectedTime && selectedCourtId && durationMin) {
     try {
@@ -129,9 +141,13 @@ export default async function KalenderPage({
         date,
         time: selectedTime,
         durationMin,
-        isMember: false,
+        isMember,
       });
-      quote = { grossCents: result.grossCents, description: result.description };
+      quote = {
+        grossCents: result.grossCents,
+        description: result.description,
+        memberRateApplied: result.memberRateApplied,
+      };
     } catch (error) {
       quoteError =
         error instanceof DomainError ? error.message : "Preis nicht verfügbar.";
@@ -312,6 +328,11 @@ export default async function KalenderPage({
                 <strong data-testid="booking-price">
                   {formatCents(quote.grossCents)}
                 </strong>
+                {quote.memberRateApplied ? (
+                  <span className="text-ice-deep bg-ice/45 ml-2 rounded-full px-2 py-0.5 text-xs font-semibold">
+                    Mitgliederpreis
+                  </span>
+                ) : null}
               </p>
               <BookButton
                 courtId={selectedCourt.id}

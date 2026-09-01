@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { auth } from "@/src/auth";
+import { requestClubMembership } from "@/src/db/club-memberships";
 import { updateProfile } from "@/src/db/users";
 import { DomainError } from "@/src/domain/errors";
 import { cancelBookingByCustomer } from "@/src/services/booking-cancellation";
@@ -83,6 +84,31 @@ export async function saveProfile(
   await updateProfile(session.user.id, parsed.data);
   revalidatePath("/konto");
   return { ok: true };
+}
+
+export type MembershipRequestState = {
+  ok?: string;
+  error?: string;
+};
+
+export async function requestMembership(
+  _prev: MembershipRequestState,
+  formData: FormData,
+): Promise<MembershipRequestState> {
+  const session = await auth();
+  if (!session?.user) return { error: "Nicht angemeldet." };
+
+  const clubId = String(formData.get("clubId") ?? "");
+  if (!clubId) return { error: "Verein fehlt." };
+
+  const shop = await getPublicShopContext();
+  if (!shop) return { error: "Aktuell nicht möglich." };
+
+  const result = await requestClubMembership(shop.ctx, session.user.id, clubId);
+  revalidatePath("/konto");
+  return result === "created"
+    ? { ok: "Anfrage gesendet – der Verein prüft deine Mitgliedschaft." }
+    : { ok: "Deine Anfrage liegt dem Verein bereits vor." };
 }
 
 export type CancelBookingState = {

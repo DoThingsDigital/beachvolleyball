@@ -1,6 +1,7 @@
 import { TZDate } from "@date-fns/tz";
 
 import { formatDate, formatWeekday } from "@/lib/format";
+import { isActiveClubMember } from "@/src/db/club-memberships";
 import {
   createSingleBookingOrderTx,
   isExclusionViolation,
@@ -34,6 +35,15 @@ export type SingleBookingQuote = {
   holdMinutes: number;
   currency: string;
   courtName: string;
+  /** true, wenn ein Mitgliedertarif in den Preis eingeflossen ist (A4) */
+  memberRateApplied: boolean;
+  breakdown: {
+    slotStart: Date;
+    slotEnd: Date;
+    ruleId: string;
+    rateCents: number;
+    slotCents: number;
+  }[];
 };
 
 export async function getSingleBookingQuote(
@@ -162,6 +172,8 @@ export async function getSingleBookingQuote(
     holdMinutes: venue.holdMinutes,
     currency: "EUR",
     courtName: court.name,
+    memberRateApplied: price.memberRateApplied,
+    breakdown: price.breakdown,
   };
 }
 
@@ -176,10 +188,9 @@ export async function createSingleBookingOrder(
     durationMin: number;
   },
 ): Promise<{ orderId: string; orderNumber: string }> {
-  const quote = await getSingleBookingQuote(ctx, {
-    ...params,
-    isMember: false, // Mitgliederpreise folgen mit Ticket 4.6
-  });
+  // A4: Mitgliederpreis nur bei aktiver Vereinsmitgliedschaft
+  const isMember = await isActiveClubMember(ctx, params.userId);
+  const quote = await getSingleBookingQuote(ctx, { ...params, isMember });
 
   const profile = await findProfile(params.userId);
   if (
@@ -210,7 +221,17 @@ export async function createSingleBookingOrder(
       netCents: quote.netCents,
       taxCents: quote.taxCents,
       grossCents: quote.grossCents,
-      priceBreakdown: { grossCents: quote.grossCents },
+      priceBreakdown: {
+        grossCents: quote.grossCents,
+        memberRateApplied: quote.memberRateApplied,
+        slots: quote.breakdown.map((s) => ({
+          from: s.slotStart.toISOString(),
+          to: s.slotEnd.toISOString(),
+          ruleId: s.ruleId,
+          rateCents: s.rateCents,
+          slotCents: s.slotCents,
+        })),
+      },
       billingSnapshot: {
         name: profile.name,
         street: profile.billingStreet,

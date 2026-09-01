@@ -99,6 +99,7 @@ describe("computePrice", () => {
       isMember: true,
     });
     expect(r.grossCents).toBe(2900);
+    expect(r.memberRateApplied).toBe(true);
   });
 
   it("Mitglied ohne Mitgliederpreis in der Regel zahlt Normalpreis", () => {
@@ -107,6 +108,13 @@ describe("computePrice", () => {
       isMember: true,
     });
     expect(r.grossCents).toBe(3000);
+    expect(r.memberRateApplied).toBe(false);
+  });
+
+  it("Nichtmitglied: memberRateApplied bleibt false", () => {
+    const r = price(at(2026, 11, 2, 19), at(2026, 11, 2, 20));
+    expect(r.grossCents).toBe(3400);
+    expect(r.memberRateApplied).toBe(false);
   });
 
   it("Wochenendregel am Samstag", () => {

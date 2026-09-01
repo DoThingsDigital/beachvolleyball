@@ -4,14 +4,12 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e",
   globalSetup: "./e2e/global-setup.ts",
-  // Dev-Server kompiliert Routen beim ersten Hit – Defaults sind zu knapp,
-  // und zu viele Worker erzeugen einen Kompilier-Stau.
   timeout: 60_000,
   expect: { timeout: 15_000 },
   workers: process.env.CI ? 1 : 2,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  // lokal 1 Retry: parallele Specs teilen sich Dev-Server + DB
+  // 1 Retry: parallele Specs teilen sich Server + DB
   retries: process.env.CI ? 2 : 1,
   reporter: process.env.CI ? "github" : "list",
   use: {
@@ -33,10 +31,14 @@ export default defineConfig({
       },
     },
   ],
+  // Production-Build statt Dev-Server: der Webpack-Dev-Server degradiert
+  // bei langen Läufen (Compile-Races, "frame.join"-Crashes) – der
+  // Prod-Server ist stabil und schneller. Ein laufender Dev-Server auf
+  // :3000 muss vor `pnpm e2e` gestoppt werden (reuse bewusst aus).
   webServer: {
-    command: "pnpm dev",
+    command: "pnpm build && pnpm start",
     url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    reuseExistingServer: false,
+    timeout: 420_000,
   },
 });

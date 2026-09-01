@@ -32,7 +32,14 @@ export type WeekOccupancy = {
   days: DayOccupancy[];
 };
 
-const cache = new Map<string, { at: number; data: WeekOccupancy }>();
+// Store auf globalThis: der Prod-Build bündelt dieses Modul mehrfach
+// (Pages vs. Server Actions); eine Modul-lokale Map würde von
+// invalidateOccupancyCache() der Action-Kopie nicht getroffen. Bei
+// Multi-Instanz-Deployment greift ohnehin nur die kurze TTL (Anzeige-Cache).
+const globalStore = globalThis as typeof globalThis & {
+  __occupancyCache?: Map<string, { at: number; data: WeekOccupancy }>;
+};
+const cache = (globalStore.__occupancyCache ??= new Map());
 
 export function invalidateOccupancyCache(): void {
   cache.clear();

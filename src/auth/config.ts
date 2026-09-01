@@ -35,6 +35,10 @@ declare module "@auth/core/jwt" {
 }
 
 export const authConfig = {
+  // Production läuft hinter einem Reverse-Proxy (Coolify/VPS) bzw. lokal
+  // als `next start` für E2E: der Host kommt aus X-Forwarded-Host und ist
+  // vertrauenswürdig (Auth.js wirft sonst UntrustedHost).
+  trustHost: true,
   pages: {
     signIn: "/login",
     verifyRequest: "/login/link-gesendet",

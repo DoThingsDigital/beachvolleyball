@@ -15,8 +15,7 @@ function createClient(): PrismaClient {
   return new PrismaClient({ adapter });
 }
 
-export const prisma = globalForPrisma.prisma ?? createClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+// Auch in Production auf globalThis: der Prod-Build bündelt Module mehrfach
+// (Pages vs. Server Actions); ohne globalen Anker entstünde je Kopie ein
+// eigener Connection-Pool.
+export const prisma = (globalForPrisma.prisma ??= createClient());

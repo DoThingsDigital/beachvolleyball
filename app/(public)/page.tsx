@@ -10,6 +10,10 @@ import { getSingleBookingQuote } from "@/src/services/single-booking";
 // Startseite laut CI (Screen 5a): Hero mit Verlauf, Winter-Badge,
 // Glow-Dom, Info-Cards mit „Nächster freier Slot".
 
+// Live-Verfügbarkeit: nie zur Build-Zeit einfrieren (next build würde die
+// Seite sonst statisch mit dem Seed-Stand rendern).
+export const dynamic = "force-dynamic";
+
 async function findNextFreeSlot() {
   const shop = await getPublicShopContext();
   if (!shop) return null;

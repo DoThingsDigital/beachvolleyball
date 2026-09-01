@@ -141,6 +141,43 @@ export function createRepositories(ctx: TenantContext) {
       },
     },
 
+    subscriptions: {
+      // Dauerplätze, die Wochenslots der Saison belegen (PENDING zählt mit:
+      // Hold/Zahlung läuft, der Slot darf nicht doppelt verkauft werden)
+      findBlockingForSeason(seasonId: string) {
+        return prisma.subscription.findMany({
+          where: {
+            seasonId,
+            organisationId,
+            status: { in: ["PENDING", "ACTIVE"] },
+          },
+          select: {
+            id: true,
+            courtId: true,
+            weekday: true,
+            startTime: true,
+            durationMin: true,
+          },
+        });
+      },
+    },
+
+    blocks: {
+      findManyForVenue(venueId: string) {
+        return prisma.block.findMany({
+          where: { venueId, organisationId },
+          select: {
+            id: true,
+            courtId: true,
+            type: true,
+            startAt: true,
+            endAt: true,
+            rrule: true,
+          },
+        });
+      },
+    },
+
     priceRules: {
       findManyForSeason(seasonId: string) {
         return prisma.priceRule.findMany({

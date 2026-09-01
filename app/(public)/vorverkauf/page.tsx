@@ -252,6 +252,7 @@ export default async function VorverkaufPage({
                 weekday={weekday}
                 startTime={startTime}
                 durationMin={durationMin}
+                termsVersion={venue.termsVersion}
               />
             </div>
           ) : null}

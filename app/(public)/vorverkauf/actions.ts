@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { auth } from "@/src/auth";
+import { recordTermsAcceptance } from "@/src/db/users";
 import { DomainError } from "@/src/domain/errors";
 import { createSubscriptionOrder } from "@/src/services/orders";
 import { getPublicShopContext } from "@/src/services/public-context";
@@ -18,6 +19,10 @@ const selectionSchema = z.object({
   weekday: z.coerce.number().int().min(1).max(7),
   startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   durationMin: z.coerce.number().int().min(15).max(480),
+  // A3: AGB-/Widerrufs-Zustimmung ist Pflicht im Checkout
+  terms: z.literal("on", {
+    message: "Bitte AGB und Widerrufshinweis bestätigen.",
+  }),
 });
 
 export async function startSubscriptionCheckout(
@@ -29,9 +34,12 @@ export async function startSubscriptionCheckout(
     weekday: formData.get("weekday"),
     startTime: formData.get("startTime"),
     durationMin: formData.get("durationMin"),
+    terms: formData.get("terms"),
   });
   if (!parsed.success) {
-    return { error: "Ungültige Auswahl." };
+    return {
+      error: parsed.error.issues[0]?.message ?? "Ungültige Auswahl.",
+    };
   }
 
   const session = await auth();
@@ -47,6 +55,7 @@ export async function startSubscriptionCheckout(
 
   let orderId: string;
   try {
+    await recordTermsAcceptance(session.user.id, shop.venue.termsVersion);
     const result = await createSubscriptionOrder(shop.ctx, {
       userId: session.user.id,
       venueId: shop.venue.id,

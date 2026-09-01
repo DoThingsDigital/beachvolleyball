@@ -17,11 +17,13 @@ export function CheckoutButton({
   weekday,
   startTime,
   durationMin,
+  termsVersion,
 }: {
   courtId: string;
   weekday: number;
   startTime: string;
   durationMin: number;
+  termsVersion: string;
 }) {
   const [state, action, pending] = useActionState(
     startSubscriptionCheckout,
@@ -34,6 +36,26 @@ export function CheckoutButton({
       <input type="hidden" name="weekday" value={weekday} />
       <input type="hidden" name="startTime" value={startTime} />
       <input type="hidden" name="durationMin" value={durationMin} />
+      <label htmlFor="checkout-terms" className="flex items-start gap-2 text-sm">
+        <input
+          id="checkout-terms"
+          name="terms"
+          type="checkbox"
+          required
+          className="mt-0.5 size-4"
+        />
+        <span>
+          Ich akzeptiere die{" "}
+          <Link href="/recht/agb" className="underline" target="_blank">
+            AGB
+          </Link>{" "}
+          und habe den{" "}
+          <Link href="/recht/widerruf" className="underline" target="_blank">
+            Widerrufshinweis
+          </Link>{" "}
+          zur Kenntnis genommen (Version {termsVersion}).
+        </span>
+      </label>
       <div>
         <Button type="submit" disabled={pending}>
           {pending ? "Wird reserviert …" : "Weiter zum Checkout"}

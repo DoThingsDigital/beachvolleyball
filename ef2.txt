@@ -1,0 +1,93 @@
+﻿node.exe : $ playwright test
+In C:\Users\janic\AppData\Roaming\npm\pnpm.ps1:24 Zeichen:5
++     & "node$exe"  "$basedir/node_modules/pnpm/bin/pnpm.mjs" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ($ playwright test:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+$ tsx prisma/seed.ts
+Seed ok: dtd · picco-beach (4 Courts) · Season "Winter 2026/27" · Club "Beachclub-Köln e.V." · Admin lets@dothingsdigital.de
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+
+Running 40 tests using 2 workers
+
+(node:27720) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27072) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 [chromium] › e2e\admin-bestellungen.spec.ts:14:5 › Bestellliste, Filter und Detailansicht (10.4s)
+  ok  2 [chromium] › e2e\admin-config.spec.ts:27:5 › Konfiguration speichern erzeugt Audit-Eintrag und persistiert (12.4s)
+  ok  3 [chromium] › e2e\admin-config.spec.ts:60:5 › Zod-Validierung: Mindestdauer > Maximaldauer wird abgelehnt (3.3s)
+  ok  5 [chromium] › e2e\admin-crud.spec.ts:40:5 › Aussteller-Wechsel am Standort (B4) (3.9s)
+  ok  4 [chromium] › e2e\admin-crud.spec.ts:13:5 › Platz anlegen und deaktivieren (6.4s)
+  ok  6 [chromium] › e2e\admin-preisregeln.spec.ts:13:5 › Preisvorschau: Peak-Slot am Montagabend (2.9s)
+  ok  7 [chromium] › e2e\admin-preisregeln.spec.ts:28:5 › Preisvorschau: außerhalb aller Regeln → verständliche Meldung (2.9s)
+  ok  8 [chromium] › e2e\auth.spec.ts:14:5 › Login mit Passwort, Konto sichtbar, Logout (2.6s)
+  ok  9 [chromium] › e2e\auth.spec.ts:42:5 › Admin-Bereich für Admin-Rolle erreichbar, Layout sichtbar (2.4s)
+  ok 10 [chromium] › e2e\auth.spec.ts:27:5 › Falsches Passwort zeigt Fehlermeldung (1.6s)
+  ok 12 [chromium] › e2e\auth.spec.ts:37:5 › Geschützte Route leitet ohne Session zum Login (1.2s)
+  ok 11 [chromium] › e2e\auth.spec.ts:58:5 › Kunde ohne Staff-Rolle wird vom Admin auf /konto umgeleitet (3.5s)
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+  ok 13 [chromium] › e2e\email.spec.ts:8:5 › Magic-Link-Anforderung versendet Mail und schreibt EmailLog (9.1s)
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+  ok 14 [chromium] › e2e\kaufflow.spec.ts:139:5 › Kaufflow: Registrierung → Kauf → Zahlung → Rechnung (27.8s)
+  ok 16 [chromium] › e2e\registration.spec.ts:15:5 › Registrierung, Bestätigung, Login, Profil (7.2s)
+  ok 17 [chromium] › e2e\smoke.spec.ts:3:5 › Startseite antwortet mit 200 und rendert (919ms)
+  ok 18 [chromium] › e2e\vorverkauf.spec.ts:7:5 › Raster, Auswahl und Preisangebot mit Terminanzahl (2.1s)
+  ok 19 [chromium] › e2e\vorverkauf.spec.ts:33:5 › Checkout ohne Login leitet zur Anmeldung (3.0s)
+  -  20 [chromium] › e2e\vorverkauf.spec.ts:49:5 › Mobil (375 px): kein horizontales Scrollen (NF7)
+(node:2992) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -  21 [mobile] › e2e\admin-bestellungen.spec.ts:14:5 › Bestellliste, Filter und Detailansicht
+  ok 22 [mobile] › e2e\admin-config.spec.ts:27:5 › Konfiguration speichern erzeugt Audit-Eintrag und persistiert (4.2s)
+  ok 23 [mobile] › e2e\admin-config.spec.ts:60:5 › Zod-Validierung: Mindestdauer > Maximaldauer wird abgelehnt (2.2s)
+  ok 24 [mobile] › e2e\admin-crud.spec.ts:13:5 › Platz anlegen und deaktivieren (4.5s)
+  ok 25 [mobile] › e2e\admin-crud.spec.ts:40:5 › Aussteller-Wechsel am Standort (B4) (2.4s)
+  ok 26 [mobile] › e2e\admin-preisregeln.spec.ts:13:5 › Preisvorschau: Peak-Slot am Montagabend (2.5s)
+  ok 27 [mobile] › e2e\admin-preisregeln.spec.ts:28:5 › Preisvorschau: außerhalb aller Regeln → verständliche Meldung (2.4s)
+  ok 28 [mobile] › e2e\auth.spec.ts:14:5 › Login mit Passwort, Konto sichtbar, Logout (1.4s)
+  ok 29 [mobile] › e2e\auth.spec.ts:27:5 › Falsches Passwort zeigt Fehlermeldung (1.0s)
+  ok 30 [mobile] › e2e\auth.spec.ts:37:5 › Geschützte Route leitet ohne Session zum Login (892ms)
+  ok 31 [mobile] › e2e\auth.spec.ts:42:5 › Admin-Bereich für Admin-Rolle erreichbar, Layout sichtbar (1.9s)
+  x  15 [chromium] › e2e\kaufflow.spec.ts:180:5 › Kaufflow-Fehlerfall: Zahlung schlägt fehl → Bestellung storniert (1.0m)
+(node:2304) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+  ok 32 [mobile] › e2e\auth.spec.ts:58:5 › Kunde ohne Staff-Rolle wird vom Admin auf /konto umgeleitet (2.6s)
+  -  34 [mobile] › e2e\email.spec.ts:8:5 › Magic-Link-Anforderung versendet Mail und schreibt EmailLog
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+  -  35 [mobile] › e2e\kaufflow.spec.ts:139:5 › Kaufflow: Registrierung → Kauf → Zahlung → Rechnung
+  -  36 [mobile] › e2e\kaufflow.spec.ts:180:5 › Kaufflow-Fehlerfall: Zahlung schlägt fehl → Bestellung storniert
+  -  37 [mobile] › e2e\registration.spec.ts:15:5 › Registrierung, Bestätigung, Login, Profil
+  ok 38 [mobile] › e2e\smoke.spec.ts:3:5 › Startseite antwortet mit 200 und rendert (1.7s)
+  ok 39 [mobile] › e2e\vorverkauf.spec.ts:7:5 › Raster, Auswahl und Preisangebot mit Terminanzahl (5.4s)
+  -  40 [mobile] › e2e\vorverkauf.spec.ts:33:5 › Checkout ohne Login leitet zur Anmeldung
+  ok 41 [mobile] › e2e\vorverkauf.spec.ts:49:5 › Mobil (375 px): kein horizontales Scrollen (NF7) (1.9s)
+  ok 33 [chromium] › e2e\kaufflow.spec.ts:180:5 › Kaufflow-Fehlerfall: Zahlung schlägt fehl → Bestellung storniert (retry #1) (27.6s)
+
+
+  1) [chromium] › e2e\kaufflow.spec.ts:180:5 › Kaufflow-Fehlerfall: Zahlung schlägt fehl → Bestellung storniert 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('link', { name: /^Fr \d{2}:\d{2}, \d+ Plätze frei$/ }).first()
+
+
+      72 |     .getByRole("link", { name: /^Fr \d{2}:\d{2}, \d+ Plätze frei$/ })
+      73 |     .first()
+    > 74 |     .click();
+         |      ^
+      75 |   await page
+      76 |     .locator("section", { hasText: "Platz wählen" })
+      77 |     .getByRole("link", { name: /^(Feld|E2E)/ })
+        at buySubscription (C:\Users\janic\Desktop\Beachvolleyball Buchungstool\e2e\kaufflow.spec.ts:74:6)
+        at C:\Users\janic\Desktop\Beachvolleyball Buchungstool\e2e\kaufflow.spec.ts:187:19
+
+    Error Context: test-results\kaufflow-Kaufflow-Fehlerfa-76533-fehl-→-Bestellung-storniert-chromium\error-context.md
+
+  1 flaky
+    [chromium] › e2e\kaufflow.spec.ts:180:5 › Kaufflow-Fehlerfall: Zahlung schlägt fehl → Bestellung storniert 
+  7 skipped
+  32 passed (2.2m)

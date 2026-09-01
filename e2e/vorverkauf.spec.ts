@@ -40,6 +40,7 @@ test("Checkout ohne Login leitet zur Anmeldung", async ({ page }, testInfo) => {
     .getByRole("link", { name: /^Feld \d/ })
     .first()
     .click();
+  await page.locator("#checkout-terms").check();
   await page.getByRole("button", { name: "Weiter zum Checkout" }).click();
 
   await expect(page).toHaveURL(/\/login\?callbackUrl=/);

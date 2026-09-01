@@ -48,8 +48,15 @@ export function RegisterForm({ termsVersion }: { termsVersion: string }) {
           <label htmlFor="reg-terms" className="flex items-start gap-2 text-sm">
             <input id="reg-terms" name="terms" type="checkbox" className="mt-0.5 size-4" />
             <span>
-              Ich stimme den <Link href="/agb" className="underline">AGB</Link>{" "}
-              und der Datenschutzerklärung zu (Version {termsVersion}).
+              Ich stimme den{" "}
+              <Link href="/recht/agb" className="underline">
+                AGB
+              </Link>{" "}
+              und der{" "}
+              <Link href="/recht/datenschutz" className="underline">
+                Datenschutzerklärung
+              </Link>{" "}
+              zu (Version {termsVersion}).
             </span>
           </label>
           {state.error ? (

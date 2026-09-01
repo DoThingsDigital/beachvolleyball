@@ -32,6 +32,14 @@ export function findProfile(userId: string) {
   });
 }
 
+// A3: Zustimmung mit Zeitstempel und Version festhalten
+export function recordTermsAcceptance(userId: string, version: string) {
+  return prisma.user.update({
+    where: { id: userId },
+    data: { termsAcceptedVersion: version, termsAcceptedAt: new Date() },
+  });
+}
+
 export function findStripeCustomer(userId: string) {
   return prisma.user.findUnique({
     where: { id: userId },

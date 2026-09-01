@@ -30,6 +30,18 @@ jobs:
       DATABASE_URL_TEST: postgresql://dtd:ci_only@localhost:5432/dtd_booking_test
       AUTH_SECRET: ci-dummy-secret-not-used-in-production
       MAIL_FROM: ci@localhost
+      MAIL_BRAND_NAME: CI Buchung
+      # Dummy-Werte: kein Stripe-Account in CI; Webhooks werden im E2E selbst
+      # signiert, der Secret-Key wird nur zur Client-Initialisierung gebraucht
+      STRIPE_SECRET_KEY: sk_test_ci_dummy
+      STRIPE_WEBHOOK_SECRET: whsec_ci_dummy_secret
+      CRON_SECRET: ci-cron-secret
+      SEED_ADMIN_EMAIL: ci-admin@example.org
+      SEED_ADMIN_PASSWORD: ci-admin-passwort-1
+      SEED_CUSTOMER_EMAIL: ci-kunde@example.org
+      SEED_CUSTOMER_PASSWORD: ci-kunde-passwort-1
+      LOGIN_RATE_LIMIT: "1000"
+      REGISTER_RATE_LIMIT: "1000"
 
     steps:
       - uses: actions/checkout@v4
@@ -66,3 +78,11 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      # 3.7: kompletter Kaufflow (Registrierung → Kauf → signierte Webhooks →
+      # Rechnung) läuft gegen den Dev-Server aus playwright.config webServer
+      - name: E2E tests
+        run: pnpm e2e

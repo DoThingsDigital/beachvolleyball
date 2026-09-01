@@ -555,6 +555,9 @@ model Booking {
   priceBreakdown    Json?
   holdExpiresAt     DateTime?     @db.Timestamptz(3)
   confirmedAt       DateTime?     @db.Timestamptz(3)
+  // Vereinsbestätigung des Kontingent-Termins (E4): bestätigte Termine
+  // werden vom Freigabe-Cron (5.2) nicht freigegeben
+  clubConfirmedAt   DateTime?     @db.Timestamptz(3)
   cancelledAt       DateTime?     @db.Timestamptz(3)
   cancelledByUserId String?
   cancelReason      String?

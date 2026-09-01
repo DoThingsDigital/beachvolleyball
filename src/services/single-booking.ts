@@ -2,6 +2,7 @@ import { TZDate } from "@date-fns/tz";
 
 import { formatDate, formatWeekday } from "@/lib/format";
 import { isActiveClubMember } from "@/src/db/club-memberships";
+import { findReleasedQuotaForSlot } from "@/src/db/club-quota";
 import {
   createSingleBookingOrderTx,
   isExclusionViolation,
@@ -205,6 +206,15 @@ export async function createSingleBookingOrder(
     );
   }
 
+  // Weiterverkauf eines freigegebenen Kontingent-Slots kennzeichnen (E3):
+  // die RELEASED-Belegung bleibt für den Report stehen, die neue Buchung
+  // trägt source RELEASE_RESALE und referenziert sie.
+  const releasedQuota = await findReleasedQuotaForSlot(ctx, {
+    courtId: params.courtId,
+    startAt: quote.startAt,
+    endAt: quote.endAt,
+  });
+
   try {
     const result = await createSingleBookingOrderTx(ctx, {
       userId: params.userId,
@@ -213,6 +223,10 @@ export async function createSingleBookingOrder(
       courtId: params.courtId,
       startAt: quote.startAt,
       endAt: quote.endAt,
+      source: releasedQuota ? "RELEASE_RESALE" : "ONLINE",
+      note: releasedQuota
+        ? `Weiterverkauf aus Kontingent-Freigabe ${releasedQuota.id}`
+        : null,
       currency: quote.currency,
       termsVersion: quote.termsVersion,
       holdMinutes: quote.holdMinutes,

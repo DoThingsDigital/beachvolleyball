@@ -88,7 +88,7 @@ Notation: `feld: Typ` · `?` = optional · `*` = Index · `!` = unique. Alle Tab
 `organisationId` · `venueId*` · `courtId*` · `clubId?` · `type: enum VEREIN|LIGA|WARTUNG|EVENT|GESPERRT` · `title` · `startAt` · `endAt` · `rrule?` (RFC 5545, z. B. `FREQ=WEEKLY;BYDAY=MO,TU,WE,TH;UNTIL=20270430`) · `releaseHoursBefore?` (überschreibt Venue) · `createdByUserId`
 
 **Booking** – jede Belegung eines Platzes
-`organisationId` · `venueId*` · `courtId*` · `startAt*` · `endAt` · `kind: enum CUSTOMER|SUBSCRIPTION|BLOCK` · `status: enum HOLD|PENDING_PAYMENT|CONFIRMED|RELEASED|CANCELLED|EXPIRED|NO_SHOW` · `usageType: enum KOMMERZIELL|VEREIN|LIGA|INTERN` · `source: enum ONLINE|ADMIN|SUBSCRIPTION|BLOCK|RELEASE_RESALE` · `userId?` · `clubId?` · `subscriptionId?` · `blockId?` · `orderItemId?` · `priceCents?` · `priceBreakdown: Json?` · `holdExpiresAt?` · `confirmedAt?` · `cancelledAt?` · `cancelledByUserId?` · `cancelReason?` · `label?` (Trainingsgruppe) · `note?`
+`organisationId` · `venueId*` · `courtId*` · `startAt*` · `endAt` · `kind: enum CUSTOMER|SUBSCRIPTION|BLOCK` · `status: enum HOLD|PENDING_PAYMENT|CONFIRMED|RELEASED|CANCELLED|EXPIRED|NO_SHOW` · `usageType: enum KOMMERZIELL|VEREIN|LIGA|INTERN` · `source: enum ONLINE|ADMIN|SUBSCRIPTION|BLOCK|RELEASE_RESALE` · `userId?` · `clubId?` · `subscriptionId?` · `blockId?` · `orderItemId?` · `priceCents?` · `priceBreakdown: Json?` · `holdExpiresAt?` · `confirmedAt?` · `clubConfirmedAt?` (Vereinsbestätigung des Kontingent-Termins, E4 – bestätigte Termine werden vom Freigabe-Cron nicht freigegeben) · `cancelledAt?` · `cancelledByUserId?` · `cancelReason?` · `label?` (Trainingsgruppe) · `note?`
 
 Index: `(courtId, startAt)`, `(venueId, startAt)`, `(userId, startAt)`, `(status, holdExpiresAt)`.
 

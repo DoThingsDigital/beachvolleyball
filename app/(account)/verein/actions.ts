@@ -9,6 +9,12 @@ import {
   importClubMembers,
   setClubMembershipStatus,
 } from "@/src/db/club-memberships";
+import {
+  confirmQuotaBooking,
+  releaseQuotaBookingByClub,
+  setQuotaBookingLabel,
+} from "@/src/db/club-quota";
+import { invalidateOccupancyCache } from "@/src/services/occupancy";
 import { getPublicShopContext } from "@/src/services/public-context";
 
 export type ClubAdminActionState = {
@@ -110,4 +116,53 @@ export async function importMembers(
         ? ` Noch nicht registriert: ${result.unknown.join(", ")}`
         : ""),
   };
+}
+
+// --- Kontingent (Ticket 5.3, E4) -------------------------------------------
+
+const quotaSchema = z.object({
+  clubId: z.string().min(1),
+  bookingId: z.string().min(1),
+  action: z.enum(["CONFIRM", "RELEASE", "LABEL"]),
+  label: z.string().trim().max(80).optional(),
+});
+
+export async function quotaAction(
+  _prev: ClubAdminActionState,
+  formData: FormData,
+): Promise<ClubAdminActionState> {
+  const parsed = quotaSchema.safeParse({
+    clubId: formData.get("clubId"),
+    bookingId: formData.get("bookingId"),
+    action: formData.get("action"),
+    label: formData.get("label") ?? undefined,
+  });
+  if (!parsed.success) return { error: "Ungültige Anfrage." };
+
+  const admin = await requireClubAdmin(parsed.data.clubId);
+  if (!admin) return { error: "Keine Berechtigung für diesen Verein." };
+
+  const { clubId, bookingId } = parsed.data;
+  if (parsed.data.action === "CONFIRM") {
+    const ok = await confirmQuotaBooking(admin.ctx, clubId, bookingId);
+    if (!ok) return { error: "Termin nicht gefunden oder nicht bestätigbar." };
+    revalidatePath("/verein");
+    return { ok: "Termin bestätigt – er bleibt beim Verein." };
+  }
+  if (parsed.data.action === "RELEASE") {
+    const ok = await releaseQuotaBookingByClub(admin.ctx, clubId, bookingId);
+    if (!ok) return { error: "Termin nicht gefunden oder schon freigegeben." };
+    invalidateOccupancyCache();
+    revalidatePath("/verein");
+    return { ok: "Termin freigegeben – er ist jetzt kommerziell buchbar." };
+  }
+  const ok = await setQuotaBookingLabel(
+    admin.ctx,
+    clubId,
+    bookingId,
+    parsed.data.label ? parsed.data.label : null,
+  );
+  if (!ok) return { error: "Termin nicht gefunden." };
+  revalidatePath("/verein");
+  return { ok: "Beschriftung gespeichert." };
 }

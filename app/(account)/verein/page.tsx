@@ -1,15 +1,17 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { formatDate } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { auth } from "@/src/auth";
 import {
   findClubMembers,
   findClubsIAdminister,
 } from "@/src/db/club-memberships";
+import { findUpcomingQuotaBookings } from "@/src/db/club-quota";
 import { getPublicShopContext } from "@/src/services/public-context";
 
 import { DecideButtons, ImportForm } from "./club-admin-forms";
+import { QuotaList, type QuotaBooking } from "./quota-list";
 
 // Vereins-Admin (Ticket 4.6): Anfragen freigeben/ablehnen, Mitgliederliste,
 // Import per E-Mail-Liste. Zugriff nur für aktive Mitglieder mit isClubAdmin.
@@ -58,6 +60,16 @@ export default async function VereinPage() {
     clubs.map(async (club) => ({
       club,
       members: await findClubMembers(shop.ctx, club.id),
+      quota: (await findUpcomingQuotaBookings(shop.ctx, club.id)).map(
+        (b): QuotaBooking => ({
+          id: b.id,
+          whenFormatted: formatDateTime(b.startAt),
+          courtName: b.court.name,
+          status: b.status as QuotaBooking["status"],
+          clubConfirmed: b.clubConfirmedAt !== null,
+          label: b.label ?? "",
+        }),
+      ),
     })),
   );
 
@@ -70,12 +82,21 @@ export default async function VereinPage() {
         </Link>
       </div>
 
-      {clubsWithMembers.map(({ club, members }) => {
+      {clubsWithMembers.map(({ club, members, quota }) => {
         const pending = members.filter((m) => m.status === "PENDING");
         const rest = members.filter((m) => m.status !== "PENDING");
         return (
           <section key={club.id} className="flex flex-col gap-5">
             <h2 className="text-lg font-bold">{club.name}</h2>
+
+            <div className="flex flex-col gap-2">
+              <h3 className="text-sm font-medium">Kontingent-Termine</h3>
+              <QuotaList
+                clubId={club.id}
+                bookings={quota}
+                releaseHours={shop.venue.releaseHoursBefore}
+              />
+            </div>
 
             <div className="flex flex-col gap-2">
               <h3 className="text-sm font-medium">

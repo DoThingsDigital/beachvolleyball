@@ -198,6 +198,9 @@ export type SingleBookingOrderInput = {
   grossCents: number;
   priceBreakdown: Prisma.InputJsonValue;
   billingSnapshot: Prisma.InputJsonValue;
+  /** Weiterverkauf eines freigegebenen Kontingent-Slots (E3) */
+  source?: "ONLINE" | "RELEASE_RESALE";
+  note?: string | null;
 };
 
 export async function createSingleBookingOrderTx(
@@ -250,7 +253,8 @@ export async function createSingleBookingOrderTx(
         kind: "CUSTOMER",
         status: "HOLD",
         usageType: "KOMMERZIELL",
-        source: "ONLINE",
+        source: input.source ?? "ONLINE",
+        note: input.note ?? null,
         userId: input.userId,
         orderItemId: item.id,
         priceCents: input.grossCents,

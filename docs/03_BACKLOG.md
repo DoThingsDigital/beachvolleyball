@@ -32,7 +32,7 @@ Definition of Done (global): Code gemerged, Tests grün, Migration angewendet, i
 | [x] 1.6 | Admin: Preisregeln CRUD mit Vorschau „Preis für Slot X" | 3 | C1, C2 | – |
 | [x] 1.7 | `computePrice()` + Dauerplatz-Kalkulation als reine Funktionen, Unit-Tests (Überlappung, Wochenende, Mitglied, Rabatt, Rundung, Zeitumstellung 25.10.) | 4 | C3, NF2 | ≥ 15 Testfälle — 24 Tests in `src/domain/pricing.test.ts` |
 | [ ] 1.8 | Kundenkonto: Registrierung (Double-Opt-in), Profil, Rechnungsadresse, AGB-Zustimmung mit Version | 4 | A1–A3 | E2E Registrierung |
-| [ ] 1.9 | E-Mail-Provider (EU), React-Email-Templates: Verifizierung, Magic Link, Basis-Layout; `EmailLog` | 1 | J1 | – |
+| [x] 1.9 | E-Mail-Provider (EU), React-Email-Templates: Verifizierung, Magic Link, Basis-Layout; `EmailLog` | 1 | J1 | Resend angebunden; EU-Region bei Domain-Verifizierung wählen (Go-Live-Checkliste) |
 
 ## Sprint 2 · KW 38 (14.–20.09.) · Dauerplatz-Shop + Checkout · ~30 h
 

@@ -1,16 +1,27 @@
 import type { EmailConfig } from "next-auth/providers";
 
-// v1: Bis der E-Mail-Provider angebunden ist (Ticket 1.9, Resend/Postmark),
-// wird der Magic Link lokal geloggt. In Produktion ohne Provider: Fehler,
-// damit niemand still ohne Mails live geht.
+import { getBrandName, sendEmail } from "./send";
+import {
+  MAGIC_LINK_TEMPLATE,
+  MAGIC_LINK_VERSION,
+  MagicLinkMail,
+} from "./templates/magic-link-mail.v1";
+
+// Magic-Link-Versand (A1/J1): React-Email-Template über den zentralen
+// Versand (Resend; ohne API-Key Dev-Log). Fehler werfen, damit Auth.js
+// den Login abbricht statt still ohne Mail fortzufahren.
 export const sendMagicLink: EmailConfig["sendVerificationRequest"] = async ({
   identifier,
   url,
 }) => {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error(
-      "Kein E-Mail-Provider konfiguriert – Magic Link kann nicht versendet werden (Ticket 1.9).",
-    );
+  const result = await sendEmail({
+    to: identifier,
+    subject: "Dein Anmeldelink",
+    react: MagicLinkMail({ url, brandName: getBrandName() }),
+    template: MAGIC_LINK_TEMPLATE,
+    templateVersion: MAGIC_LINK_VERSION,
+  });
+  if (!result.ok) {
+    throw new Error("Anmeldelink konnte nicht versendet werden.");
   }
-  console.log(`\n[magic-link] Anmeldelink für ${identifier}:\n${url}\n`);
 };

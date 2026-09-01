@@ -41,6 +41,11 @@ yarn-error.log*
 # prisma generated client
 /src/generated/
 
+# lokale Arbeitsdateien (z. B. Zugangslisten, Kalkulationen) gehoeren nie ins Repo
+*.xlsx
+*.xls
+~$*
+
 # vercel
 .vercel
 

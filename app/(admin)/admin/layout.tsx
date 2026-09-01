@@ -20,7 +20,7 @@ const NAV = [
   { href: "/admin/massenstorno", label: "Massenstorno" },
   { href: "/admin/konfiguration/standort", label: "Konfiguration" },
   { href: "/admin/audit", label: "Audit-Log" },
-  { href: "/admin", label: "Reports", pending: "Sprint 6" },
+  { href: "/admin/reports", label: "Reports" },
 ] as const;
 
 export default async function AdminLayout({

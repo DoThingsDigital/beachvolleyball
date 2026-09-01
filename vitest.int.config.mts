@@ -1,6 +1,14 @@
 import "dotenv/config";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
+
+// Rechnungs-PDFs der Tests landen in einem Wegwerf-Verzeichnis
+process.env.INVOICE_STORAGE_DIR ??= mkdtempSync(
+  path.join(tmpdir(), "dtd-int-invoices-"),
+);
 
 // Integrationstests laufen gegen die Test-DB, nie gegen die Dev-DB.
 const testUrl = process.env.DATABASE_URL_TEST ?? process.env.DATABASE_URL;

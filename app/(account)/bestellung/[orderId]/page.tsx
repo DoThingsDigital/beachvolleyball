@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { formatCents, formatDateTime } from "@/lib/format";
 import { auth } from "@/src/auth";
+import { findInvoiceForOrder } from "@/src/db/invoices";
 import { createRepositories } from "@/src/db/repositories";
 import { getPublicShopContext } from "@/src/services/public-context";
 
@@ -36,6 +37,8 @@ export default async function BestellungPage({
     redirect("/konto");
   }
 
+  const invoice = await findInvoiceForOrder(order.id, "INVOICE");
+
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-lg flex-col gap-6 p-4">
       <header className="flex flex-col gap-1">
@@ -67,6 +70,18 @@ export default async function BestellungPage({
           {formatCents(order.totalCents)}
         </span>
       </div>
+
+      {invoice ? (
+        <p className="text-sm">
+          <a
+            href={`/bestellung/${order.id}/rechnung`}
+            className="underline"
+            data-testid="invoice-download"
+          >
+            Rechnung {invoice.number} herunterladen (PDF)
+          </a>
+        </p>
+      ) : null}
 
       {order.status === "AWAITING_PAYMENT" ? (
         <div className="flex flex-col gap-2">

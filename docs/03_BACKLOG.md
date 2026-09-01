@@ -50,8 +50,8 @@ Definition of Done (global): Code gemerged, Tests grün, Migration angewendet, i
 
 | # | Ticket | h | Ref | DoD |
 |---|---|---|---|---|
-| [ ] 3.1 | Rechnungsmodul: Nummernkreis (transaktional), Snapshots, PDF (`@react-pdf/renderer`), Storage-Upload, SHA-256 | 7 | H1, H2, H5 | Test: 50 parallele Rechnungen ohne Lücke/Dublette |
-| [ ] 3.2 | Rechnung bei `PAID`/`PROCESSING` automatisch, Mailversand mit Anhang, Download im Konto | 2 | H4 | – |
+| [x] 3.1 | Rechnungsmodul: Nummernkreis (transaktional), Snapshots, PDF (`@react-pdf/renderer`), Storage-Upload, SHA-256 | 7 | H1, H2, H5 | Test: 50 parallele Rechnungen ohne Lücke/Dublette |
+| [x] 3.2 | Rechnung bei `PAID`/`PROCESSING` automatisch, Mailversand mit Anhang, Download im Konto | 2 | H4 | – |
 | [ ] 3.3 | Gutschrift/Stornorechnung, Admin-Erstattung über Stripe (ganz/teilweise), Refund-Webhook | 5 | H3, I1 | Teilerstattung erzeugt Teilgutschrift |
 | [ ] 3.4 | Admin: Bestellungen (Liste, Filter, Detail, Rechnung neu senden) | 3 | K1 | – |
 | [ ] 3.5 | Admin: Kunden (Liste, Suche, Detail mit Bestellungen/Mandaten/Notizen), Dauerplatz kündigen mit anteiliger Erstattung | 4 | K2, F4 | – |

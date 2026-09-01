@@ -27,17 +27,30 @@ export async function sendEmail(params: {
   userId?: string | null;
   refType?: string | null;
   refId?: string | null;
+  attachments?: { filename: string; content: Buffer }[];
 }): Promise<{ ok: boolean; messageId?: string }> {
-  const { to, subject, react, template, templateVersion, userId, refType, refId } =
-    params;
+  const {
+    to,
+    subject,
+    react,
+    template,
+    templateVersion,
+    userId,
+    refType,
+    refId,
+    attachments,
+  } = params;
 
   const html = await render(react);
   const text = await render(react, { plainText: true });
   const resend = getResend();
 
   if (!resend) {
+    const attachmentNote = attachments?.length
+      ? ` [Anhänge: ${attachments.map((a) => a.filename).join(", ")}]`
+      : "";
     console.log(
-      `\n[email:dev] ${template}@${templateVersion} an ${to} – "${subject}"\n${text}\n`,
+      `\n[email:dev] ${template}@${templateVersion} an ${to} – "${subject}"${attachmentNote}\n${text}\n`,
     );
     await logEmail({
       userId,
@@ -56,7 +69,17 @@ export async function sendEmail(params: {
     throw new Error("MAIL_FROM ist nicht gesetzt.");
   }
 
-  const result = await resend.emails.send({ from, to, subject, html, text });
+  const result = await resend.emails.send({
+    from,
+    to,
+    subject,
+    html,
+    text,
+    attachments: attachments?.map((a) => ({
+      filename: a.filename,
+      content: a.content,
+    })),
+  });
   const ok = !result.error;
   await logEmail({
     userId,

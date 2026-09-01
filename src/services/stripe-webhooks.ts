@@ -26,10 +26,17 @@ import {
   OrderConfirmationMail,
 } from "@/src/email/templates/order-confirmation-mail.v1";
 import {
+  INVOICE_MAIL_TEMPLATE,
+  INVOICE_MAIL_VERSION,
+  InvoiceMail,
+} from "@/src/email/templates/invoice-mail.v1";
+import {
   PAYMENT_FAILED_TEMPLATE,
   PAYMENT_FAILED_VERSION,
   PaymentFailedMail,
 } from "@/src/email/templates/payment-failed-mail.v1";
+import { createInvoiceForOrder } from "./invoices";
+import { readInvoicePdf } from "./storage";
 import { getStripe } from "./stripe";
 
 type OrderWithUser = NonNullable<
@@ -149,6 +156,29 @@ async function handleConflictAfterExpiry(
   return { handled: true, note: "Konflikt: auto-refund ausgelöst" };
 }
 
+// Ticket 3.2: Rechnung bei PAID/PROCESSING automatisch erzeugen (idempotent
+// über das Rechnungsmodul) und mit PDF-Anhang verschicken. Genau einmal:
+// nur wenn der Aufrufer die Erst-Erfüllung festgestellt hat.
+async function issueAndSendInvoice(order: OrderWithUser): Promise<void> {
+  const invoice = await createInvoiceForOrder(order.id);
+  const pdf = await readInvoicePdf(invoice.pdfKey);
+  await sendEmail({
+    to: order.user.email,
+    subject: `Rechnung ${invoice.number}`,
+    react: InvoiceMail({
+      brandName: getBrandName(),
+      invoiceNumber: invoice.number,
+      totalFormatted: formatCents(invoice.grossCents),
+    }),
+    template: INVOICE_MAIL_TEMPLATE,
+    templateVersion: INVOICE_MAIL_VERSION,
+    userId: order.userId,
+    refType: "invoice",
+    refId: invoice.id,
+    attachments: [{ filename: `Rechnung-${invoice.number}.pdf`, content: pdf }],
+  });
+}
+
 async function sendOrderConfirmation(order: OrderWithUser): Promise<void> {
   await sendEmail({
     to: order.user.email,
@@ -200,6 +230,7 @@ async function handlePaymentProcessing(
     const fulfilled = await confirmFulfillmentTx(order.id);
     if (fulfilled.activatedSubscriptions > 0) {
       await sendOrderConfirmation(order);
+      await issueAndSendInvoice(order);
     }
   }
   await saveMandateFromPaymentIntent(pi, order.userId);
@@ -236,6 +267,7 @@ async function handlePaymentSucceeded(
   const fulfilled = await confirmFulfillmentTx(order.id);
   if (fulfilled.activatedSubscriptions > 0) {
     await sendOrderConfirmation(order);
+    await issueAndSendInvoice(order);
   }
   await saveMandateFromPaymentIntent(pi, order.userId);
   return { handled: true };

@@ -193,6 +193,22 @@ describe("SEPA-Pfad in normaler Reihenfolge", () => {
       where: { orderId, providerRef: "pi_a" },
     });
     expect(payment.status).toBe("SUCCEEDED");
+
+    // Ticket 3.2: Rechnung wurde automatisch erzeugt und verschickt
+    const invoice = await prisma.invoice.findFirstOrThrow({
+      where: { orderId, type: "INVOICE" },
+    });
+    expect(invoice.number).toMatch(/^WH-\d{4}-\d{6}$/);
+    // Saison ohne Rabatt: 5 Termine à 30,00 €
+    expect(invoice.grossCents).toBe(15000);
+    const invoiceMail = await prisma.emailLog.findFirst({
+      where: { refId: invoice.id, template: "invoice" },
+    });
+    expect(invoiceMail).not.toBeNull();
+
+    // Doppeltes succeeded-Event erzeugt keine zweite Rechnung
+    await processStripeEvent(piEvent("payment_intent.succeeded", orderId, "pi_a"));
+    expect(await prisma.invoice.count({ where: { orderId } })).toBe(1);
   });
 
   it("doppeltes/verspätetes processing-Event ist ein No-op", async () => {

@@ -52,22 +52,21 @@ export default async function VorverkaufPage({
   });
 
   const params = await searchParams;
-  const durationMin = availability.durationsMin.includes(Number(params.dauer))
-    ? Number(params.dauer)
-    : (availability.durationsMin[0] ?? 60);
   const weekday =
     Number(params.tag) >= 1 && Number(params.tag) <= 7
       ? Number(params.tag)
       : null;
   const startTime = params.zeit ?? null;
 
-  // Slots der gewählten Dauer: je (weekday, startTime) freie Plätze zählen
-  const slotsForDuration = availability.slots.filter(
-    (s) => s.durationMin === durationMin,
+  // Raster zeigt die Basis-Dauer (Mindestdauer); die konkrete Dauer wird
+  // unten in der Auswahl getroffen – nur volle Stunden (Venue-Raster).
+  const baseDuration = availability.durationsMin[0] ?? 60;
+  const slotsForBase = availability.slots.filter(
+    (s) => s.durationMin === baseDuration,
   );
   const freeByCell = new Map<string, string[]>();
   const startTimes = new Set<string>();
-  for (const slot of slotsForDuration) {
+  for (const slot of slotsForBase) {
     startTimes.add(slot.startTime);
     const key = `${slot.weekday}#${slot.startTime}`;
     const list = freeByCell.get(key);
@@ -84,8 +83,25 @@ export default async function VorverkaufPage({
   const selectedCourt =
     freeCourts.find((c) => c.id === params.platz) ?? null;
 
-  const quote =
+  // Passende Dauern für die konkrete Auswahl (Platz × Wochentag × Zeit)
+  const fittingDurations =
     weekday && startTime && selectedCourt
+      ? availability.durationsMin.filter((d) =>
+          availability.slots.some(
+            (s) =>
+              s.courtId === selectedCourt.id &&
+              s.weekday === weekday &&
+              s.startTime === startTime &&
+              s.durationMin === d,
+          ),
+        )
+      : [];
+  const durationMin = fittingDurations.includes(Number(params.dauer))
+    ? Number(params.dauer)
+    : (fittingDurations[0] ?? null);
+
+  const quote =
+    weekday && startTime && selectedCourt && durationMin
       ? await getSubscriptionQuote(ctx, {
           venueId: venue.id,
           seasonId: season.id,
@@ -106,26 +122,6 @@ export default async function VorverkaufPage({
           Saison
         </p>
       </header>
-
-      <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium">Dauer wählen</h2>
-        <div className="flex gap-2">
-          {availability.durationsMin.map((d) => (
-            <Link
-              key={d}
-              href={buildQuery({ dauer: String(d) })}
-              className={
-                "rounded-md border px-3 py-1.5 text-sm " +
-                (d === durationMin
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "hover:bg-accent")
-              }
-            >
-              {d} min
-            </Link>
-          ))}
-        </div>
-      </section>
 
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-medium">
@@ -165,7 +161,6 @@ export default async function VorverkaufPage({
                     <td key={day} className="p-0.5">
                       <Link
                         href={buildQuery({
-                          dauer: String(durationMin),
                           tag: String(day),
                           zeit: time,
                         })}
@@ -194,30 +189,53 @@ export default async function VorverkaufPage({
       {weekday && startTime ? (
         <section className="flex flex-col gap-2 rounded-md border p-3">
           <h2 className="text-sm font-medium">
-            {WEEKDAY_LABELS[weekday - 1]}, {startTime} Uhr · {durationMin} min ·
-            Platz wählen
+            {WEEKDAY_LABELS[weekday - 1]}, {startTime} Uhr · Platz wählen
           </h2>
           <div className="flex flex-wrap gap-2">
             {freeCourts.map((court) => (
               <Link
                 key={court.id}
                 href={buildQuery({
-                  dauer: String(durationMin),
                   tag: String(weekday),
                   zeit: startTime,
                   platz: court.id,
                 })}
                 className={
-                  "rounded-md border px-3 py-1.5 text-sm " +
+                  "rounded-full border px-3.5 py-1.5 text-sm font-semibold " +
                   (selectedCourt?.id === court.id
                     ? "bg-primary text-primary-foreground border-primary"
-                    : "hover:bg-accent")
+                    : "bg-card hover:border-primary")
                 }
               >
                 {court.name}
               </Link>
             ))}
           </div>
+
+          {selectedCourt && fittingDurations.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-muted-foreground text-sm">Dauer:</span>
+              {fittingDurations.map((d) => (
+                <Link
+                  key={d}
+                  href={buildQuery({
+                    tag: String(weekday),
+                    zeit: startTime,
+                    platz: selectedCourt.id,
+                    dauer: String(d),
+                  })}
+                  className={
+                    "rounded-full border px-3.5 py-1.5 text-sm font-semibold " +
+                    (d === durationMin
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card hover:border-primary")
+                  }
+                >
+                  {d / 60 === 1 ? "1 Stunde" : `${d / 60} Stunden`}
+                </Link>
+              ))}
+            </div>
+          ) : null}
 
           {quote && selectedCourt ? (
             <dl
@@ -245,7 +263,7 @@ export default async function VorverkaufPage({
             </dl>
           ) : null}
 
-          {quote && selectedCourt && weekday && startTime ? (
+          {quote && selectedCourt && weekday && startTime && durationMin ? (
             <div className="mt-2">
               <CheckoutButton
                 courtId={selectedCourt.id}

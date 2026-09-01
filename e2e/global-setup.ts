@@ -13,6 +13,19 @@ export default async function globalSetup() {
     await pool.query(
       `UPDATE "Court" SET active = false WHERE name LIKE 'E2E-Feld%'`,
     );
+    // Testkäufe früherer Läufe stornieren, sonst fressen sie echte Slots
+    await pool.query(
+      `UPDATE "Booking" b SET status='CANCELLED', "cancelledAt"=now(), "cancelReason"='E2E_CLEANUP'
+       FROM "User" u
+       WHERE b."userId"=u.id AND u.email LIKE 'e2e-%@example.org'
+         AND b.status IN ('HOLD','PENDING_PAYMENT','CONFIRMED')`,
+    );
+    await pool.query(
+      `UPDATE "Subscription" s SET status='CANCELLED', "cancelledAt"=now(), "cancelReason"='E2E_CLEANUP'
+       FROM "User" u
+       WHERE s."userId"=u.id AND u.email LIKE 'e2e-%@example.org'
+         AND s.status IN ('PENDING','ACTIVE')`,
+    );
   } finally {
     await pool.end();
   }

@@ -166,6 +166,10 @@ async function main() {
         street: "Pfälzischer Ring 100", // TODO: Adresse prüfen
         zip: "51063",
         city: "Köln",
+        // Vorgabe Janick (01.09.): Slots und Abos nur stundenweise
+        slotMinutes: 60,
+        minDurationMin: 60,
+        maxDurationMin: 120,
         openingHours: {
           mon: [["08:00", "22:00"]],
           tue: [["08:00", "22:00"]],

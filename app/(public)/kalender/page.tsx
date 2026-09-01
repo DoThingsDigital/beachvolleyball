@@ -289,13 +289,13 @@ export default async function KalenderPage({
                     dauer: String(d),
                   })}
                   className={
-                    "rounded-md border px-3 py-1.5 text-sm " +
+                    "rounded-full border px-3.5 py-1.5 text-sm font-semibold " +
                     (d === durationMin
                       ? "bg-primary text-primary-foreground border-primary"
-                      : "hover:bg-accent")
+                      : "bg-card hover:border-primary")
                   }
                 >
-                  {d} min
+                  {d / 60 === 1 ? "1 Stunde" : `${d / 60} Stunden`}
                 </Link>
               ))}
             </div>

@@ -67,6 +67,27 @@ export function createRepositories(ctx: TenantContext) {
           data: { ...entry, organisationId },
         });
       },
+      findManyForAdmin(params: { entity?: string; take?: number }) {
+        return prisma.auditLog.findMany({
+          where: {
+            organisationId,
+            ...(params.entity ? { entity: params.entity } : {}),
+          },
+          include: {
+            actor: { select: { name: true, email: true } },
+          },
+          orderBy: { at: "desc" },
+          take: params.take ?? 100,
+        });
+      },
+      listEntities() {
+        return prisma.auditLog.findMany({
+          where: { organisationId },
+          distinct: ["entity"],
+          select: { entity: true },
+          orderBy: { entity: "asc" },
+        });
+      },
     },
 
     courts: {

@@ -17,7 +17,9 @@ const NAV = [
   { href: "/admin/bestellungen", label: "Bestellungen" },
   { href: "/admin/kunden", label: "Kunden" },
   { href: "/admin/sperren", label: "Sperren" },
+  { href: "/admin/massenstorno", label: "Massenstorno" },
   { href: "/admin/konfiguration/standort", label: "Konfiguration" },
+  { href: "/admin/audit", label: "Audit-Log" },
   { href: "/admin", label: "Reports", pending: "Sprint 6" },
 ] as const;
 

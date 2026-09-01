@@ -83,8 +83,8 @@ Definition of Done (global): Code gemerged, Tests grün, Migration angewendet, i
 | [x] 5.3 | Vereins-Admin-Bereich: Kontingent bestätigen/freigeben, Trainingsgruppe beschriften | 4 | E4 | – |
 | [x] 5.4 | Admin-Kalender: Wochenansicht je Platz, manuelle Belegung (mit/ohne Rechnung, manuelle Zahlart), Sperre, Verschieben, Stornieren, No-Show | 12 | K4, G7, I4 | Drag & Drop optional (nicht umgesetzt) |
 | [x] 5.5 | Dauerplatz-Übersicht Saison (Raster), Konflikte, Kündigung aus dem Kalender | 4 | K5 | – |
-| [ ] 5.6 | Betreiber-Massenstorno für Zeitraum (Hallenausfall) mit Guthaben/Erstattung + Sammelmail | 4 | I3 | – |
-| [ ] 5.7 | Audit-Log-Ansicht | 2 | K6 | – |
+| [x] 5.6 | Betreiber-Massenstorno für Zeitraum (Hallenausfall) mit Guthaben/Erstattung + Sammelmail | 4 | I3 | – |
+| [x] 5.7 | Audit-Log-Ansicht | 2 | K6 | – |
 
 ## Sprint 6 · KW 44 (26.10.–01.11.) · Reports + Go-Live Stufe 2 · ~25 h
 

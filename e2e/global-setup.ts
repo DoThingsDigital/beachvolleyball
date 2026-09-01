@@ -26,6 +26,12 @@ export default async function globalSetup() {
        WHERE s."userId"=u.id AND u.email LIKE 'e2e-%@example.org'
          AND s.status IN ('PENDING','ACTIVE')`,
     );
+    // Abgelaufene Holds austragen (lokal läuft der Expire-Cron nicht):
+    // sonst blockieren Admin-Testbuchungen früherer Läufe dauerhaft Slots.
+    await pool.query(
+      `UPDATE "Booking" SET status='EXPIRED'
+       WHERE status='HOLD' AND "holdExpiresAt" < now()`,
+    );
   } finally {
     await pool.end();
   }

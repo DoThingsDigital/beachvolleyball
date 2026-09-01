@@ -12,7 +12,7 @@ import { VenueSwitcher } from "./venue-switcher";
 // K3: Bereiche wachsen mit den Tickets; noch nicht gebaute Ziele zeigen auf /admin.
 const NAV = [
   { href: "/admin", label: "Übersicht" },
-  { href: "/admin", label: "Kalender", pending: "Sprint 5" },
+  { href: "/admin/kalender", label: "Kalender" },
   { href: "/admin/bestellungen", label: "Bestellungen" },
   { href: "/admin/kunden", label: "Kunden" },
   { href: "/admin/sperren", label: "Sperren" },

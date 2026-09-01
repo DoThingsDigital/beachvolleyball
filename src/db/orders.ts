@@ -51,7 +51,7 @@ export function isExclusionViolation(error: unknown): boolean {
   return false;
 }
 
-function orderNumber(): string {
+export function orderNumber(): string {
   const now = new Date();
   const ymd = `${now.getUTCFullYear()}${String(now.getUTCMonth() + 1).padStart(2, "0")}${String(now.getUTCDate()).padStart(2, "0")}`;
   return `ORD-${ymd}-${randomBytes(4).toString("hex").toUpperCase()}`;

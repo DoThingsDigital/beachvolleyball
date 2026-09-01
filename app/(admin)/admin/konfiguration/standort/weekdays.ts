@@ -1,0 +1,9 @@
+export const WEEKDAYS = [
+  ["mon", "Montag"],
+  ["tue", "Dienstag"],
+  ["wed", "Mittwoch"],
+  ["thu", "Donnerstag"],
+  ["fri", "Freitag"],
+  ["sat", "Samstag"],
+  ["sun", "Sonntag"],
+] as const;

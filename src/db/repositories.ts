@@ -25,6 +25,35 @@ export function createRepositories(ctx: TenantContext) {
       findBySlug(slug: string) {
         return prisma.venue.findFirst({ where: { slug, organisationId } });
       },
+      async update(
+        id: string,
+        data: Omit<
+          Prisma.VenueUncheckedUpdateInput,
+          "id" | "organisationId" | "legalEntityId" | "slug"
+        >,
+      ) {
+        // updateMany, damit der Mandantenfilter Teil des WHERE ist.
+        const result = await prisma.venue.updateMany({
+          where: { id, organisationId },
+          data,
+        });
+        if (result.count === 0) return null;
+        return prisma.venue.findFirst({ where: { id, organisationId } });
+      },
+    },
+
+    auditLogs: {
+      create(entry: {
+        actorUserId: string | null;
+        entity: string;
+        entityId: string;
+        action: string;
+        diff: Prisma.InputJsonValue;
+      }) {
+        return prisma.auditLog.create({
+          data: { ...entry, organisationId },
+        });
+      },
     },
 
     courts: {

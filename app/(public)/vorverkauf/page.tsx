@@ -31,6 +31,9 @@ function buildQuery(params: Record<string, string | undefined>): string {
   return `/vorverkauf?${q.toString()}`;
 }
 
+// Immer live rendern (siehe Kalender: früher null-Return vor dynamic APIs)
+export const dynamic = "force-dynamic";
+
 export default async function VorverkaufPage({
   searchParams,
 }: {

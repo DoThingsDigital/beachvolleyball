@@ -16,24 +16,34 @@ test.beforeAll(async () => {
     const venue = venueRes.rows[0];
     if (!venue) return;
 
+    // Alt-Reste mit Zufalls-IDs aus früheren Läufen entfernen (nur diese –
+    // die fixed-Zeilen bleiben unangetastet)
     await pool.query(
-      `DELETE FROM "PriceRule" WHERE label = 'E2E-Testsaison-Regel'`,
+      `DELETE FROM "PriceRule" WHERE label = 'E2E-Testsaison-Regel' AND id <> 'e2e-rule-fixed'`,
     );
     await pool.query(
-      `DELETE FROM "Season" WHERE name = 'E2E-Testsaison' AND "venueId" = $1`,
-      [venue.id],
+      `DELETE FROM "Season" WHERE name = 'E2E-Testsaison' AND id <> 'e2e-season-fixed'`,
     );
-    const seasonRes = await pool.query(
+
+    // Lückenloses Upsert mit festen IDs: beforeAll läuft bei fullyParallel
+    // je Worker – ein DELETE+INSERT würde parallelen Tests kurzzeitig die
+    // Preisregel entziehen (NO_PRICE_RULE-Race zwischen Vorschau und Kauf).
+    await pool.query(
       `INSERT INTO "Season" (id, "organisationId", "venueId", name, "startDate", "endDate", status, "subscriptionDiscountBp", "createdAt", "updatedAt")
-       VALUES ('e2e-season-' || substr(md5(random()::text), 1, 12), $1, $2, 'E2E-Testsaison',
+       VALUES ('e2e-season-fixed', $1, $2, 'E2E-Testsaison',
                now() - interval '1 day', now() + interval '30 days', 'ACTIVE', 0, now(), now())
-       RETURNING id`,
+       ON CONFLICT (id) DO UPDATE SET
+         "startDate" = now() - interval '1 day',
+         "endDate" = now() + interval '30 days',
+         status = 'ACTIVE',
+         "updatedAt" = now()`,
       [venue.organisationId, venue.id],
     );
     await pool.query(
       `INSERT INTO "PriceRule" (id, "organisationId", "venueId", "seasonId", "courtIds", weekdays, "timeFrom", "timeTo", "pricePerHourCents", priority, label, active, "createdAt", "updatedAt")
-       VALUES ('e2e-rule-' || substr(md5(random()::text), 1, 12), $1, $2, $3, '{}', '{1,2,3,4,5,6,7}', '08:00', '22:00', 2000, 1, 'E2E-Testsaison-Regel', true, now(), now())`,
-      [venue.organisationId, venue.id, seasonRes.rows[0].id],
+       VALUES ('e2e-rule-fixed', $1, $2, 'e2e-season-fixed', '{}', '{1,2,3,4,5,6,7}', '08:00', '22:00', 2000, 1, 'E2E-Testsaison-Regel', true, now(), now())
+       ON CONFLICT (id) DO UPDATE SET active = true, "updatedAt" = now()`,
+      [venue.organisationId, venue.id],
     );
   } finally {
     await pool.end();

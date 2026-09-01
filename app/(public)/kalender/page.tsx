@@ -55,6 +55,11 @@ const STATE_LABELS: Record<string, string> = {
   GESPERRT: "gesperrt",
 };
 
+// Immer live rendern: der frühe null-Return (Shop-Kontext) läuft vor jeder
+// dynamic API – bei leerer DB zur Build-Zeit würde Next die Seite sonst als
+// statisch einfrieren (Query-Parameter würden dann ignoriert).
+export const dynamic = "force-dynamic";
+
 export default async function KalenderPage({
   searchParams,
 }: {

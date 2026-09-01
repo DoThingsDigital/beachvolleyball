@@ -8,7 +8,8 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # inkl. Production-Build + E2E gegen next start (1 Worker)
+    timeout-minutes: 25
 
     services:
       postgres:

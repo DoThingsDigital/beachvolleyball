@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/src/auth";
@@ -40,6 +41,12 @@ export default async function LoginPage({
         </p>
       ) : null}
       <LoginForm callbackUrl={callbackUrl} />
+      <p className="text-muted-foreground text-sm">
+        Noch kein Konto?{" "}
+        <Link href="/registrieren" className="text-foreground underline">
+          Jetzt registrieren
+        </Link>
+      </p>
     </main>
   );
 }

@@ -4,9 +4,17 @@ import { formatCents, formatDate } from "@/lib/format";
 import {
   createInvoiceWithNumber,
   findInvoiceForOrder,
+  findInvoiceWithUser,
   findLegalEntityById,
   findOrderForInvoicing,
 } from "@/src/db/invoices";
+import { getBrandName, sendEmail } from "@/src/email/send";
+import {
+  INVOICE_MAIL_TEMPLATE,
+  INVOICE_MAIL_VERSION,
+  InvoiceMail,
+} from "@/src/email/templates/invoice-mail.v1";
+import { readInvoicePdf } from "./storage";
 import { DomainError } from "@/src/domain/errors";
 import { InvoicePdf, type InvoicePdfData } from "@/src/pdf/invoice.v1";
 import { storeInvoicePdf } from "./storage";
@@ -18,6 +26,36 @@ import { storeInvoicePdf } from "./storage";
 
 function taxRateLabel(taxRateBp: number): string {
   return `${(taxRateBp / 100).toLocaleString("de-DE")} %`;
+}
+
+// K1: Rechnung/Gutschrift erneut per Mail zustellen (Admin).
+export async function resendInvoiceEmail(invoiceId: string) {
+  const invoice = await findInvoiceWithUser(invoiceId);
+  if (!invoice) throw new DomainError("NOT_FOUND", "Rechnung nicht gefunden.");
+
+  const pdf = await readInvoicePdf(invoice.pdfKey);
+  const isCreditNote = invoice.type === "CREDIT_NOTE";
+  const result = await sendEmail({
+    to: invoice.user.email,
+    subject: `${isCreditNote ? "Gutschrift" : "Rechnung"} ${invoice.number}`,
+    react: InvoiceMail({
+      brandName: getBrandName(),
+      invoiceNumber: invoice.number,
+      totalFormatted: formatCents(invoice.grossCents),
+    }),
+    template: INVOICE_MAIL_TEMPLATE,
+    templateVersion: INVOICE_MAIL_VERSION,
+    userId: invoice.userId,
+    refType: "invoice",
+    refId: invoice.id,
+    attachments: [
+      {
+        filename: `${isCreditNote ? "Gutschrift" : "Rechnung"}-${invoice.number}.pdf`,
+        content: pdf,
+      },
+    ],
+  });
+  return { ok: result.ok, number: invoice.number };
 }
 
 export async function createInvoiceForOrder(orderId: string) {

@@ -148,6 +148,48 @@ export function createRepositories(ctx: TenantContext) {
           include: { items: true },
         });
       },
+      findManyForAdmin(filter: {
+        venueId?: string;
+        status?: string;
+        query?: string;
+      }) {
+        return prisma.order.findMany({
+          where: {
+            organisationId,
+            ...(filter.venueId ? { venueId: filter.venueId } : {}),
+            ...(filter.status
+              ? { status: filter.status as Prisma.EnumOrderStatusFilter["equals"] }
+              : {}),
+            ...(filter.query
+              ? {
+                  OR: [
+                    { number: { contains: filter.query, mode: "insensitive" } },
+                    {
+                      user: {
+                        email: { contains: filter.query, mode: "insensitive" },
+                      },
+                    },
+                  ],
+                }
+              : {}),
+          },
+          include: { user: { select: { email: true, name: true } } },
+          orderBy: { createdAt: "desc" },
+          take: 100,
+        });
+      },
+      findForAdmin(orderId: string) {
+        return prisma.order.findFirst({
+          where: { id: orderId, organisationId },
+          include: {
+            items: true,
+            user: { select: { id: true, email: true, name: true } },
+            payments: true,
+            refunds: { include: { creditNoteInvoice: true } },
+            invoices: true,
+          },
+        });
+      },
     },
 
     subscriptions: {

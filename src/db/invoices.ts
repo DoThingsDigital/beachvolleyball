@@ -104,3 +104,10 @@ export function findOrderForInvoicing(orderId: string) {
 export function findLegalEntityById(legalEntityId: string) {
   return prisma.legalEntity.findUnique({ where: { id: legalEntityId } });
 }
+
+export function findInvoiceWithUser(invoiceId: string) {
+  return prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    include: { user: { select: { id: true, email: true } } },
+  });
+}

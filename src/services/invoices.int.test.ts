@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { prisma } from "@/src/db/client";
 import { cleanupTestDb } from "@/src/db/test/cleanup";
-import { createInvoiceForOrder } from "./invoices";
+import { createInvoiceForOrder, resendInvoiceEmail } from "./invoices";
 import { readInvoicePdf, sha256 } from "./storage";
 
 // DoD Ticket 3.1: 50 parallele Rechnungen ohne Lücke/Dublette im
@@ -140,6 +140,18 @@ describe("Rechnungsmodul (3.1)", () => {
     const count = await prisma.invoice.count({ where: { legalEntityId } });
     expect(count).toBe(50);
     expect(again.number).toMatch(/^TT-/);
+  });
+
+  it("erneuter Versand protokolliert im EmailLog (K1)", async () => {
+    const invoice = await prisma.invoice.findFirstOrThrow({
+      where: { legalEntityId },
+    });
+    await resendInvoiceEmail(invoice.id);
+    const log = await prisma.emailLog.findFirst({
+      where: { refId: invoice.id, template: "invoice" },
+      orderBy: { sentAt: "desc" },
+    });
+    expect(log).not.toBeNull();
   });
 
   it("unbezahlte Bestellung bekommt keine Rechnung", async () => {

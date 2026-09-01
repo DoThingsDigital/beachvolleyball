@@ -48,3 +48,14 @@ const WEEKDAYS_DE = [
 export function formatWeekday(isoWeekday: number): string {
   return WEEKDAYS_DE[isoWeekday - 1] ?? `Tag ${isoWeekday}`;
 }
+
+/** "12,50" | "12.50" | "1.234,56" | "12" → Cent; ungültig → null */
+export function parseEuroToCents(input: string): number | null {
+  const trimmed = input.trim();
+  // Mit Komma: Punkte sind Tausendertrenner; ohne Komma: Punkt = Dezimal
+  const normalized = trimmed.includes(",")
+    ? trimmed.replace(/\./g, "").replace(",", ".")
+    : trimmed;
+  if (!/^\d+(\.\d{1,2})?$/.test(normalized)) return null;
+  return Math.round(Number(normalized) * 100);
+}

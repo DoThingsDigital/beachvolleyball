@@ -65,7 +65,7 @@ Definition of Done (global): Code gemerged, Tests grün, Migration angewendet, i
 
 | # | Ticket | h | Ref | DoD |
 |---|---|---|---|---|
-| [ ] 4.1 | Verfügbarkeits-API für Wochenansicht (Courts × Slots, Zustände), Caching pro Woche/Standort | 5 | D1 | < 1 s für eine Woche |
+| [x] 4.1 | Verfügbarkeits-API für Wochenansicht (Courts × Slots, Zustände), Caching pro Woche/Standort | 5 | D1 | < 1 s für eine Woche |
 | [ ] 4.2 | Öffentlicher Kalender (Woche/Tag, mobil), Preisvorschau, Auswahl mit Dauer | 8 | D1, D2, C4 | Tastaturbedienbar |
 | [ ] 4.3 | Hold → Checkout für Einzelbuchung (Wiederverwendung Sprint 2), `sepaLeadDays`-Regel für Zahlarten | 5 | D3, D7 | – |
 | [ ] 4.4 | Buchungsbestätigung mit ICS, „Meine Buchungen", Kunden-Storno mit Frist, Erstattung/Guthaben je Regel | 6 | D5, D6, I2 | – |

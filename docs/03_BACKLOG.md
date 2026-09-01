@@ -78,7 +78,7 @@ Definition of Done (global): Code gemerged, Tests grün, Migration angewendet, i
 
 | # | Ticket | h | Ref | DoD |
 |---|---|---|---|---|
-| [ ] 5.1 | Block-CRUD mit RRULE, Materialisierung in Bookings (Saisonhorizont), Re-Materialisierung bei Änderung ohne Verlust bestätigter Termine | 6 | E1, E2 | Tests |
+| [x] 5.1 | Block-CRUD mit RRULE, Materialisierung in Bookings (Saisonhorizont), Re-Materialisierung bei Änderung ohne Verlust bestätigter Termine | 6 | E1, E2 | Tests |
 | [ ] 5.2 | Kontingent-Freigabe-Cron (`RELEASED`), Weiterverkauf als `RELEASE_RESALE` | 3 | E3 | – |
 | [ ] 5.3 | Vereins-Admin-Bereich: Kontingent bestätigen/freigeben, Trainingsgruppe beschriften | 4 | E4 | – |
 | [ ] 5.4 | Admin-Kalender: Wochenansicht je Platz, manuelle Belegung (mit/ohne Rechnung, manuelle Zahlart), Sperre, Verschieben, Stornieren, No-Show | 12 | K4, G7, I4 | Drag & Drop optional |

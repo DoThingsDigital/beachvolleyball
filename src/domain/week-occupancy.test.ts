@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  blockToDayIntervals,
+  bookingStateFor,
   bookingToDayInterval,
   computeDayOccupancy,
   type DayInterval,
@@ -73,6 +73,8 @@ describe("bookingToDayInterval", () => {
         courtId: "c1",
         startAt: new Date("2026-11-02T18:00:00Z"),
         endAt: new Date("2026-11-02T19:00:00Z"),
+        kind: "CUSTOMER",
+        usageType: "KOMMERZIELL",
       },
       "2026-11-02",
       TZ,
@@ -85,6 +87,26 @@ describe("bookingToDayInterval", () => {
     });
   });
 
+  it("materialisierte VEREIN-Sperre erhält den Zustand VEREIN", () => {
+    const interval = bookingToDayInterval(
+      {
+        courtId: "c1",
+        startAt: new Date("2026-11-02T17:00:00Z"), // 18:00 lokal
+        endAt: new Date("2026-11-02T21:00:00Z"), // 22:00 lokal
+        kind: "BLOCK",
+        usageType: "VEREIN",
+      },
+      "2026-11-02",
+      TZ,
+    );
+    expect(interval).toEqual({
+      courtId: "c1",
+      startMin: 18 * 60,
+      endMin: 22 * 60,
+      state: "VEREIN",
+    });
+  });
+
   it("Buchung an anderem Tag → null", () => {
     expect(
       bookingToDayInterval(
@@ -92,6 +114,8 @@ describe("bookingToDayInterval", () => {
           courtId: "c1",
           startAt: new Date("2026-11-03T18:00:00Z"),
           endAt: new Date("2026-11-03T19:00:00Z"),
+          kind: "CUSTOMER",
+          usageType: "KOMMERZIELL",
         },
         "2026-11-02",
         TZ,
@@ -100,41 +124,12 @@ describe("bookingToDayInterval", () => {
   });
 });
 
-describe("blockToDayIntervals", () => {
-  const vereinsBlock = {
-    courtId: "c1",
-    type: "VEREIN",
-    // 18:00–22:00 lokal, Serie ab Do 01.10.2026
-    startAt: new Date("2026-10-01T16:00:00Z"),
-    endAt: new Date("2026-10-01T20:00:00Z"),
-    rrule: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH;UNTIL=20270331T215959Z",
-  };
-
-  it("wöchentlicher VEREIN-Block trifft passenden Wochentag", () => {
-    // Mo 02.11.2026
-    const intervals = blockToDayIntervals(vereinsBlock, "2026-11-02", TZ);
-    expect(intervals).toEqual([
-      { courtId: "c1", startMin: 18 * 60, endMin: 22 * 60, state: "VEREIN" },
-    ]);
-  });
-
-  it("falscher Wochentag / vor Serienbeginn / nach UNTIL → leer", () => {
-    expect(blockToDayIntervals(vereinsBlock, "2026-11-06", TZ)).toEqual([]); // Fr
-    expect(blockToDayIntervals(vereinsBlock, "2026-09-28", TZ)).toEqual([]); // Mo vor Beginn
-    expect(blockToDayIntervals(vereinsBlock, "2027-04-05", TZ)).toEqual([]); // Mo nach UNTIL
-  });
-
-  it("einmalige Wartung sperrt nur ihren Tag", () => {
-    const wartung = {
-      courtId: "c2",
-      type: "WARTUNG",
-      startAt: new Date("2026-11-02T09:00:00Z"), // 10:00 lokal
-      endAt: new Date("2026-11-02T11:00:00Z"), // 12:00 lokal
-      rrule: null,
-    };
-    expect(blockToDayIntervals(wartung, "2026-11-02", TZ)).toEqual([
-      { courtId: "c2", startMin: 10 * 60, endMin: 12 * 60, state: "GESPERRT" },
-    ]);
-    expect(blockToDayIntervals(wartung, "2026-11-03", TZ)).toEqual([]);
+describe("bookingStateFor", () => {
+  it("Blocks nach usageType, alles andere BELEGT", () => {
+    expect(bookingStateFor("BLOCK", "VEREIN")).toBe("VEREIN");
+    expect(bookingStateFor("BLOCK", "LIGA")).toBe("VEREIN");
+    expect(bookingStateFor("BLOCK", "INTERN")).toBe("GESPERRT");
+    expect(bookingStateFor("CUSTOMER", "KOMMERZIELL")).toBe("BELEGT");
+    expect(bookingStateFor("SUBSCRIPTION", "KOMMERZIELL")).toBe("BELEGT");
   });
 });

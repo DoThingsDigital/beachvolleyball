@@ -56,7 +56,9 @@ export default async function VereinePage() {
       </section>
 
       <p className="text-muted-foreground text-xs">
-        Vereins-Admins und Mitgliederlisten folgen mit Ticket 4.6.
+        Mitgliedschaften verwaltet der Vereins-Admin selbst unter /verein
+        (Freigabe von Anfragen, Listenimport). Vereins-Admins entstehen über
+        eine aktive Mitgliedschaft mit Admin-Kennzeichen.
       </p>
     </div>
   );

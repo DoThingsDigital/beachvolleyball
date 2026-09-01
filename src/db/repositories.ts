@@ -237,6 +237,35 @@ export function createRepositories(ctx: TenantContext) {
           },
         });
       },
+      findManyForAdmin(venueId: string) {
+        return prisma.block.findMany({
+          where: { venueId, organisationId },
+          include: {
+            club: { select: { id: true, name: true } },
+            court: { select: { id: true, name: true } },
+          },
+          orderBy: [{ startAt: "desc" }],
+        });
+      },
+      findById(id: string) {
+        return prisma.block.findFirst({ where: { id, organisationId } });
+      },
+      create(data: Omit<Prisma.BlockUncheckedCreateInput, "organisationId">) {
+        return prisma.block.create({ data: { ...data, organisationId } });
+      },
+      async update(
+        id: string,
+        data: Omit<
+          Prisma.BlockUncheckedUpdateInput,
+          "id" | "organisationId" | "venueId"
+        >,
+      ) {
+        const res = await prisma.block.updateMany({
+          where: { id, organisationId },
+          data,
+        });
+        return res.count > 0;
+      },
     },
 
     priceRules: {

@@ -2,9 +2,13 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { prisma } from "@/src/db/client";
 import { cleanupTestDb } from "@/src/db/test/cleanup";
+import { materializeBlock } from "./blocks";
 import { getWeekOccupancy, invalidateOccupancyCache } from "./occupancy";
 
 // Ticket 4.1 (D1): Wochenbelegung mit Zuständen; Performance < 1 s.
+// Seit Ticket 5.1 liest die Belegung materialisierte Block-Bookings,
+// daher werden die Blöcke im Setup materialisiert (fixe Referenzzeit,
+// damit die November-Assertions unabhängig vom Laufdatum bleiben).
 
 let orgId: string;
 let venueId: string;
@@ -66,8 +70,21 @@ beforeAll(async () => {
     data: { email: "int-test-occ-admin@example.org" },
   });
 
+  // Saison als Materialisierungsfenster (5.1)
+  await prisma.season.create({
+    data: {
+      organisationId: orgId,
+      venueId,
+      name: "Occ Saison",
+      startDate: new Date("2026-10-01T00:00:00Z"),
+      endDate: new Date("2026-12-01T00:00:00Z"),
+      status: "ACTIVE",
+      subscriptionDiscountBp: 0,
+    },
+  });
+
   // Vereinskontingent: Feld A, Mo+Do 18–22 lokal
-  await prisma.block.create({
+  const kontingent = await prisma.block.create({
     data: {
       organisationId: orgId,
       venueId,
@@ -81,7 +98,7 @@ beforeAll(async () => {
     },
   });
   // Einmalige Wartung: Feld B, Di 03.11. 10–12 lokal (09–11Z, CET)
-  await prisma.block.create({
+  const wartung = await prisma.block.create({
     data: {
       organisationId: orgId,
       venueId,
@@ -93,6 +110,15 @@ beforeAll(async () => {
       rrule: null,
       createdByUserId: admin.id,
     },
+  });
+  const refNow = new Date("2026-10-01T00:00:00Z");
+  await materializeBlock({ organisationId: orgId }, kontingent.id, {
+    now: refNow,
+    actorUserId: admin.id,
+  });
+  await materializeBlock({ organisationId: orgId }, wartung.id, {
+    now: refNow,
+    actorUserId: admin.id,
   });
   // Kundenbuchung: Feld B, Mo 02.11. 19–20 lokal (18–19Z)
   await prisma.booking.create({

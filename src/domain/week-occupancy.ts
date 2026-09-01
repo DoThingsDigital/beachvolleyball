@@ -1,14 +1,14 @@
 import { TZDate } from "@date-fns/tz";
 
-import { parseWeeklyBydays } from "./subscription-availability";
-
 // Wochen-/Tagesbelegung für den öffentlichen Kalender (Ticket 4.1, D1).
-// Zustände je 30-min-Slot und Platz:
+// Zustände je Slot und Platz:
 //   FREI      – buchbar
 //   BELEGT    – aktive Belegung (Kunde/Dauerplatz: HOLD/PENDING/CONFIRMED)
-//   VEREIN    – Vereinskontingent/Liga (aus Block-Regeln)
-//   GESPERRT  – Wartung/Event/Sperre
-// Buchungen schlagen Blockzustände (z. B. weiterverkaufter RELEASED-Slot).
+//   VEREIN    – Vereinskontingent/Liga (materialisierte Block-Belegung, 5.1)
+//   GESPERRT  – Wartung/Event/Sperre (materialisierte Block-Belegung)
+// Seit Ticket 5.1 sind Sperren als Bookings materialisiert; die Anzeige
+// liest nur noch Belegungen. RELEASED-Belegungen sind nicht aktiv und
+// erscheinen damit als FREI (kommerziell nachbuchbar, E3).
 
 export type SlotState = "FREI" | "BELEGT" | "VEREIN" | "GESPERRT";
 
@@ -79,8 +79,24 @@ export function computeDayOccupancy(params: {
 
 // --- Intervall-Quellen ------------------------------------------------------
 
+/** Anzeigezustand einer Belegung: materialisierte Sperren nach usageType,
+ *  alles andere ist eine gewöhnliche Buchung. */
+export function bookingStateFor(
+  kind: string,
+  usageType: string,
+): Exclude<SlotState, "FREI"> {
+  if (kind !== "BLOCK") return "BELEGT";
+  return usageType === "VEREIN" || usageType === "LIGA" ? "VEREIN" : "GESPERRT";
+}
+
 export function bookingToDayInterval(
-  booking: { courtId: string; startAt: Date; endAt: Date },
+  booking: {
+    courtId: string;
+    startAt: Date;
+    endAt: Date;
+    kind: string;
+    usageType: string;
+  },
   date: string,
   timezone: string,
 ): DayInterval | null {
@@ -93,7 +109,7 @@ export function bookingToDayInterval(
     courtId: booking.courtId,
     startMin: msToLocalMin(startMs, timezone),
     endMin: endMs === dayEnd ? 24 * 60 : msToLocalMin(endMs, timezone),
-    state: "BELEGT",
+    state: bookingStateFor(booking.kind, booking.usageType),
   };
 }
 
@@ -119,57 +135,4 @@ export function addDays(date: string, days: number): string {
 function msToLocalMin(ms: number, timezone: string): number {
   const local = new TZDate(ms, timezone);
   return local.getHours() * 60 + local.getMinutes();
-}
-
-function blockStateFor(type: string): Exclude<SlotState, "FREI" | "BELEGT"> {
-  return type === "VEREIN" || type === "LIGA" ? "VEREIN" : "GESPERRT";
-}
-
-function parseUntil(rrule: string): number | null {
-  const match = /UNTIL=(\d{4})(\d{2})(\d{2})/.exec(rrule);
-  if (!match) return null;
-  return Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 23, 59, 59);
-}
-
-/** Expandiert Block-Regeln (wöchentlich per RRULE oder einmalig) auf einen
- *  lokalen Kalendertag. */
-export function blockToDayIntervals(
-  block: {
-    courtId: string;
-    type: string;
-    startAt: Date;
-    endAt: Date;
-    rrule: string | null;
-  },
-  date: string,
-  timezone: string,
-): DayInterval[] {
-  const state = blockStateFor(block.type);
-  const startLocal = new TZDate(block.startAt.getTime(), timezone);
-  const endLocal = new TZDate(block.endAt.getTime(), timezone);
-  const startMin = startLocal.getHours() * 60 + startLocal.getMinutes();
-  const endMin = endLocal.getHours() * 60 + endLocal.getMinutes();
-
-  const weekdays = parseWeeklyBydays(block.rrule);
-  if (!weekdays) {
-    // Einmalige Sperre: gilt nur am lokalen Datum des Beginns
-    const blockDate = `${startLocal.getFullYear()}-${String(startLocal.getMonth() + 1).padStart(2, "0")}-${String(startLocal.getDate()).padStart(2, "0")}`;
-    if (blockDate !== date || endMin <= startMin) return [];
-    return [{ courtId: block.courtId, startMin, endMin, state }];
-  }
-
-  const [y, m, d] = date.split("-").map(Number);
-  const utcNoon = Date.UTC(y!, m! - 1, d!, 12);
-  const day = new Date(utcNoon).getUTCDay();
-  const isoWeekday = day === 0 ? 7 : day;
-  if (!weekdays.includes(isoWeekday)) return [];
-
-  // Serienfenster: erst ab dem Tag der ersten Ausprägung, bis UNTIL
-  const endOfRequestedDayUtc = utcNoon + 12 * 3_600_000;
-  if (block.startAt.getTime() > endOfRequestedDayUtc) return [];
-  const until = block.rrule ? parseUntil(block.rrule) : null;
-  if (until !== null && utcNoon > until) return [];
-  if (endMin <= startMin) return [];
-
-  return [{ courtId: block.courtId, startMin, endMin, state }];
 }

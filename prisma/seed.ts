@@ -251,26 +251,45 @@ async function main() {
 
     // Vorvertrag: zwei Plätze Mo–Do 18–22 Uhr über die Saison.
     // 01.10.2026 ist ein Donnerstag (CEST, +02:00).
+    const kontingentBlockIds: string[] = [];
     for (const court of courts.slice(0, 2)) {
       const title = `Vereinskontingent ${court.name}`;
-      const existing = await prisma.block.findFirst({
+      let block = await prisma.block.findFirst({
         where: { venueId: venue.id, courtId: court.id, title },
       });
-      if (!existing) {
-        await prisma.block.create({
-          data: {
-            organisationId: organisation.id,
-            venueId: venue.id,
-            courtId: court.id,
-            clubId: club.id,
-            type: "VEREIN",
-            title,
-            startAt: new Date("2026-10-01T18:00:00+02:00"),
-            endAt: new Date("2026-10-01T22:00:00+02:00"),
-            rrule: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH;UNTIL=20270331T215959Z",
-            createdByUserId: admin.id,
-          },
-        });
+      block ??= await prisma.block.create({
+        data: {
+          organisationId: organisation.id,
+          venueId: venue.id,
+          courtId: court.id,
+          clubId: club.id,
+          type: "VEREIN",
+          title,
+          startAt: new Date("2026-10-01T18:00:00+02:00"),
+          endAt: new Date("2026-10-01T22:00:00+02:00"),
+          rrule: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH;UNTIL=20270331T215959Z",
+          createdByUserId: admin.id,
+        },
+      });
+      kontingentBlockIds.push(block.id);
+    }
+
+    // Materialisierung (Ticket 5.1): Kontingent-Regeln → konkrete Belegungen.
+    // Idempotent; Konflikte mit bestehenden Buchungen werden nur gemeldet.
+    const { materializeBlock } = await import("../src/services/blocks");
+    for (const blockId of kontingentBlockIds) {
+      const result = await materializeBlock(
+        { organisationId: organisation.id },
+        blockId,
+        { actorUserId: admin.id },
+      );
+      if (result.created > 0 || result.skippedConflicts.length > 0) {
+        console.log(
+          `Kontingent ${blockId}: ${result.created} Termine materialisiert` +
+            (result.skippedConflicts.length > 0
+              ? `, ${result.skippedConflicts.length} Konflikte übersprungen`
+              : ""),
+        );
       }
     }
 

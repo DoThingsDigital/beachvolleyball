@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/src/auth";
 import { DomainError } from "@/src/domain/errors";
 import { startStripeCheckout } from "@/src/services/checkout";
+import { payOrderWithCredit } from "@/src/services/credit-payment";
 import { getPublicShopContext } from "@/src/services/public-context";
 
 export type PayState = { error?: string };
@@ -44,4 +45,35 @@ export async function payOrder(
   }
 
   redirect(url);
+}
+
+// M1: Bestellung vollständig mit Guthaben bezahlen (nur wenn das
+// Guthaben den Gesamtbetrag deckt; Teilverrechnung ist bewusst v2).
+export async function payWithCredit(
+  _prev: PayState,
+  formData: FormData,
+): Promise<PayState> {
+  const orderId = String(formData.get("orderId") ?? "");
+  if (!orderId) return { error: "Bestellung fehlt." };
+
+  const session = await auth();
+  if (!session?.user) {
+    redirect(`/login?callbackUrl=${encodeURIComponent(`/bestellung/${orderId}`)}`);
+  }
+  const shop = await getPublicShopContext();
+  if (!shop) return { error: "Shop nicht verfügbar." };
+
+  try {
+    await payOrderWithCredit(shop.ctx, {
+      orderId,
+      userId: session.user.id,
+    });
+  } catch (error) {
+    if (error instanceof DomainError) {
+      return { error: error.message };
+    }
+    throw error;
+  }
+
+  redirect(`/bestellung/${orderId}`);
 }

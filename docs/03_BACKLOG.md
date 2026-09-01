@@ -103,7 +103,7 @@ Definition of Done (global): Code gemerged, Tests grün, Migration angewendet, i
 
 | Ticket | h | Ref |
 |---|---|---|
-| Guthabenkonto + Verrechnung im Checkout | 8 | M1 |
+| ✅ Guthaben-Verrechnung im Checkout (nur volle Deckung, siehe E-004; Aufladung folgt) | 8 | M1 |
 | 10er-Karte (Minutenkontingent) | 10 | M2 |
 | Gutscheine inkl. Widerrufsbelehrung | 10 | M3 |
 | Warteliste + Benachrichtigung | 10 | D8, N1 |

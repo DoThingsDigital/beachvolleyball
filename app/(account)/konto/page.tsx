@@ -9,6 +9,7 @@ import { getPublicShopContext } from "@/src/services/public-context";
 
 import { findUpcomingBookingsForUser } from "@/src/db/bookings";
 import { findClubsWithMyMembership } from "@/src/db/club-memberships";
+import { getCreditBalance } from "@/src/db/credit";
 import { formatDateTime } from "@/lib/format";
 
 import { logout } from "@/app/(public)/login/actions";
@@ -51,6 +52,10 @@ export default async function KontoPage() {
       )
     : [];
 
+  const creditBalance = shop
+    ? await getCreditBalance(shop.ctx, session.user.id)
+    : 0;
+
   const upcoming: MyBooking[] = shop
     ? (await findUpcomingBookingsForUser(shop.ctx, session.user.id)).map(
         (b) => ({
@@ -92,6 +97,16 @@ export default async function KontoPage() {
           </span>
         ) : null}
       </p>
+      {creditBalance > 0 ? (
+        <p className="text-sm" data-testid="credit-balance">
+          Guthaben:{" "}
+          <span className="font-semibold">{formatCents(creditBalance)}</span>{" "}
+          <span className="text-muted-foreground">
+            – wird beim Bezahlen einer Bestellung angeboten, sobald es den
+            Gesamtbetrag deckt.
+          </span>
+        </p>
+      ) : null}
       <MembershipSection clubs={clubs} />
 
       <section className="flex flex-col gap-3">

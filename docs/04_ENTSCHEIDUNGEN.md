@@ -5,6 +5,26 @@ Neueste oben. Format: Kontext → Optionen → Entscheidung → Folgen.
 
 ---
 
+## E-004 · 2026-09-01 · Guthaben-Verrechnung nur bei voller Deckung (M1, v1)
+
+**Kontext.** Stornos (Kunde, Betreiber, Massenstorno) erzeugen Guthaben im
+`CreditLedger`. M1 verlangt die Verrechnung im Checkout.
+
+**Entscheidung.** v1 verrechnet Guthaben nur, wenn es den **gesamten**
+Bestellbetrag deckt („Mit Guthaben zahlen" auf der Bestellseite; atomar
+per Advisory-Lock je Nutzer, Payment `MANUAL/credit`, gleicher
+Erfüllungs-/Rechnungsweg wie Stripe). Teilverrechnung mit Stripe-Rest ist
+bewusst v2: sie bräuchte Split-Payments und eine Rückbuchung des
+Guthabens bei Hold-Ablauf/Checkout-Abbruch – Komplexität, die für den
+Hauptnutzen (Storno-Guthaben einlösen) nicht nötig ist. Aufladung
+(CREDIT_TOPUP) folgt separat.
+
+**Folgen.** Kunden mit kleinem Guthaben sehen den Hinweis, dass es erst ab
+voller Deckung einlösbar ist. Reicht das Guthaben, entsteht keine
+Stripe-Gebühr.
+
+---
+
 ## E-003 · 2026-09-01 · Einzelbuchung bleibt bei Stripe Hosted Checkout (Ticket 4.7)
 
 **Kontext.** Der Hold auf einen Slot gilt `venue.holdMinutes` (Default 15 min).

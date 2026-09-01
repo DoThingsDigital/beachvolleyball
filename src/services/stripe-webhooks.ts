@@ -42,7 +42,7 @@ import { createInvoiceForOrder } from "./invoices";
 import { readInvoicePdf } from "./storage";
 import { getStripe } from "./stripe";
 
-type OrderWithUser = NonNullable<
+export type OrderWithUser = NonNullable<
   Awaited<ReturnType<typeof findOrderByStripeRef>>
 >;
 
@@ -162,7 +162,7 @@ async function handleConflictAfterExpiry(
 // Ticket 3.2: Rechnung bei PAID/PROCESSING automatisch erzeugen (idempotent
 // über das Rechnungsmodul) und mit PDF-Anhang verschicken. Genau einmal:
 // nur wenn der Aufrufer die Erst-Erfüllung festgestellt hat.
-async function issueAndSendInvoice(order: OrderWithUser): Promise<void> {
+export async function issueAndSendInvoice(order: OrderWithUser): Promise<void> {
   const invoice = await createInvoiceForOrder(order.id);
   const pdf = await readInvoicePdf(invoice.pdfKey);
   await sendEmail({
@@ -182,7 +182,7 @@ async function issueAndSendInvoice(order: OrderWithUser): Promise<void> {
   });
 }
 
-async function sendOrderConfirmation(order: OrderWithUser): Promise<void> {
+export async function sendOrderConfirmation(order: OrderWithUser): Promise<void> {
   // D5: Einzelbuchungen bekommen den Termin als ICS-Anhang mit
   const attachments: { filename: string; content: Buffer }[] = [];
   if (order.items.some((i) => i.productType === "SINGLE_BOOKING")) {

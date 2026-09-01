@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { formatCents, formatDateTime } from "@/lib/format";
 import { auth } from "@/src/auth";
+import { getCreditBalance } from "@/src/db/credit";
 import { findInvoiceForOrder } from "@/src/db/invoices";
 import { createRepositories } from "@/src/db/repositories";
 import { getPublicShopContext } from "@/src/services/public-context";
@@ -92,7 +93,14 @@ export default async function BestellungPage({
             Deine Termine sind für kurze Zeit reserviert. Schließe die Zahlung
             ab, um sie verbindlich zu buchen.
           </p>
-          <PayButton orderId={order.id} />
+          <PayButton
+            orderId={order.id}
+            totalCents={order.totalCents}
+            creditBalanceCents={await getCreditBalance(
+              shop.ctx,
+              session.user.id,
+            )}
+          />
         </div>
       ) : null}
     </main>

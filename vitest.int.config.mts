@@ -10,6 +10,8 @@ if (!testUrl) {
 process.env.DATABASE_URL = testUrl;
 
 export default defineConfig({
+  // Next setzt jsx:preserve; Vitest/Vite (OXC) braucht die Transformation
+  oxc: { jsx: { runtime: "automatic" } },
   resolve: {
     alias: [
       { find: /^@\/components\//, replacement: fileURLToPath(new URL("./src/components/", import.meta.url)) },

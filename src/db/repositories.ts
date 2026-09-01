@@ -153,6 +153,16 @@ export function createRepositories(ctx: TenantContext) {
     subscriptions: {
       // Dauerplätze, die Wochenslots der Saison belegen (PENDING zählt mit:
       // Hold/Zahlung läuft, der Slot darf nicht doppelt verkauft werden)
+      findManyForUser(userId: string) {
+        return prisma.subscription.findMany({
+          where: { userId, organisationId },
+          include: {
+            court: { select: { name: true } },
+            season: { select: { name: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        });
+      },
       findBlockingForSeason(seasonId: string) {
         return prisma.subscription.findMany({
           where: {

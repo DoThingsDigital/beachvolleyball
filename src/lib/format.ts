@@ -33,3 +33,18 @@ export function formatTime(date: Date): string {
 export function formatDateTime(date: Date): string {
   return `${DATE_BERLIN.format(date)}, ${TIME_BERLIN.format(date)} Uhr`;
 }
+
+const WEEKDAYS_DE = [
+  "Montag",
+  "Dienstag",
+  "Mittwoch",
+  "Donnerstag",
+  "Freitag",
+  "Samstag",
+  "Sonntag",
+] as const;
+
+/** 1 = Montag … 7 = Sonntag (ISO) */
+export function formatWeekday(isoWeekday: number): string {
+  return WEEKDAYS_DE[isoWeekday - 1] ?? `Tag ${isoWeekday}`;
+}

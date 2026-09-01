@@ -1,9 +1,19 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { prisma } from "@/src/db/client";
 import { cleanupTestDb } from "@/src/db/test/cleanup";
-import { createSubscriptionOrder } from "./orders";
+import { createSubscriptionOrder, expireHolds } from "./orders";
 import { processStripeEvent } from "./stripe-webhooks";
+
+// Stripe-API im Test mocken: Refunds/Charge-Reads gehen nicht raus.
+vi.mock("./stripe", () => ({
+  getStripe: () => ({
+    refunds: {
+      create: vi.fn(async () => ({ id: "re_test_conflict" })),
+    },
+    charges: { retrieve: vi.fn(async () => ({})) },
+  }),
+}));
 
 // Integrationstests (Ticket 2.5): Statusübergänge über Stripe-Fixture-Events
 // in beliebiger Reihenfolge, Idempotenz, SEPA-Rücklastschrift (G3/G4).
@@ -209,6 +219,48 @@ describe("Reihenfolge-Unabhängigkeit", () => {
       sub: "ACTIVE",
       bookings: { CONFIRMED: 5 },
     });
+  });
+});
+
+describe("Konfliktfall: Hold abgelaufen, Session bezahlt (G6, Ticket 2.7)", () => {
+  it("Auto-Refund + Konflikt-Mail, Bestellung bleibt storniert; idempotent", async () => {
+    const orderId = await makeOrder("14:00");
+
+    // Hold ablaufen lassen und Cron laufen lassen → Order CANCELLED
+    await prisma.booking.updateMany({
+      where: { status: "HOLD" },
+      data: { holdExpiresAt: new Date(Date.now() - 60_000) },
+    });
+    await expireHolds();
+    const cancelled = await prisma.order.findUniqueOrThrow({
+      where: { id: orderId },
+    });
+    expect(cancelled.status).toBe("CANCELLED");
+
+    // Kunde zahlt trotzdem (Session lebt länger als der Hold)
+    await processStripeEvent(piEvent("payment_intent.succeeded", orderId, "pi_x"));
+
+    const state = await orderState(orderId);
+    expect(state.order).toBe("CANCELLED"); // keine nachträgliche Erfüllung
+    expect(state.bookings).toEqual({ EXPIRED: 5 });
+
+    const refunds = await prisma.refund.findMany({ where: { orderId } });
+    expect(refunds).toHaveLength(1);
+    expect(refunds[0]).toMatchObject({
+      reason: "CHECKOUT_CONFLICT",
+      status: "PENDING",
+      providerRef: "re_test_conflict",
+      amountCents: 13500,
+    });
+
+    const mail = await prisma.emailLog.findFirst({
+      where: { refId: orderId, template: "checkout-conflict" },
+    });
+    expect(mail).not.toBeNull();
+
+    // dasselbe Event nochmal → kein zweiter Refund
+    await processStripeEvent(piEvent("payment_intent.succeeded", orderId, "pi_x"));
+    expect(await prisma.refund.count({ where: { orderId } })).toBe(1);
   });
 });
 

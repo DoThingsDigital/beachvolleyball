@@ -176,8 +176,60 @@ export function findOrderByStripeRef(ref: {
   if (conditions.length === 0) return null;
   return prisma.order.findFirst({
     where: { OR: conditions },
-    include: { items: true },
+    include: {
+      items: true,
+      user: { select: { id: true, email: true, name: true } },
+    },
   });
+}
+
+/** Automatische Erstattung im Konfliktfall (G6). Legt bei Bedarf den
+ *  Payment-Datensatz an und verzeichnet den Refund als PENDING;
+ *  der Status kommt über den charge.refunded-Webhook (Ticket 3.3). */
+export async function recordAutoRefund(entry: {
+  orderId: string;
+  providerRef: string;
+  refundProviderRef: string;
+  amountCents: number;
+  method: string;
+  actorUserId: string;
+}) {
+  let payment = await prisma.payment.findFirst({
+    where: { orderId: entry.orderId, providerRef: entry.providerRef },
+  });
+  payment ??= await prisma.payment.create({
+    data: {
+      orderId: entry.orderId,
+      provider: "STRIPE",
+      providerRef: entry.providerRef,
+      method: entry.method,
+      amountCents: entry.amountCents,
+      status: "SUCCEEDED",
+      receivedAt: new Date(),
+    },
+  });
+
+  const existing = await prisma.refund.findFirst({
+    where: { paymentId: payment.id, providerRef: entry.refundProviderRef },
+  });
+  if (existing) return existing;
+  return prisma.refund.create({
+    data: {
+      paymentId: payment.id,
+      orderId: entry.orderId,
+      amountCents: entry.amountCents,
+      reason: "CHECKOUT_CONFLICT",
+      providerRef: entry.refundProviderRef,
+      status: "PENDING",
+      createdByUserId: entry.actorUserId,
+    },
+  });
+}
+
+export function hasRefundForOrder(orderId: string) {
+  return prisma.refund
+    .findFirst({ where: { orderId, reason: "CHECKOUT_CONFLICT" } })
+    .then(Boolean);
 }
 
 export function linkPaymentIntent(

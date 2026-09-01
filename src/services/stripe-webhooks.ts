@@ -1,17 +1,44 @@
 import type Stripe from "stripe";
 
+import { formatCents } from "@/lib/format";
 import { getOrganisationSettings } from "@/src/db/organisations";
 import {
   cancelFulfillmentTx,
   confirmFulfillmentTx,
   findOrderByStripeRef,
+  hasRefundForOrder,
   linkPaymentIntent,
+  recordAutoRefund,
   saveSepaMandate,
   setUserSepaBlocked,
   transitionOrder,
   upsertStripePayment,
 } from "@/src/db/orders";
+import { getBrandName, sendEmail } from "@/src/email/send";
+import {
+  CHECKOUT_CONFLICT_TEMPLATE,
+  CHECKOUT_CONFLICT_VERSION,
+  CheckoutConflictMail,
+} from "@/src/email/templates/checkout-conflict-mail.v1";
+import {
+  ORDER_CONFIRMATION_TEMPLATE,
+  ORDER_CONFIRMATION_VERSION,
+  OrderConfirmationMail,
+} from "@/src/email/templates/order-confirmation-mail.v1";
+import {
+  PAYMENT_FAILED_TEMPLATE,
+  PAYMENT_FAILED_VERSION,
+  PaymentFailedMail,
+} from "@/src/email/templates/payment-failed-mail.v1";
 import { getStripe } from "./stripe";
+
+type OrderWithUser = NonNullable<
+  Awaited<ReturnType<typeof findOrderByStripeRef>>
+>;
+
+function appUrl(): string {
+  return process.env.APP_URL ?? "http://localhost:3000";
+}
 
 // Webhook-Verarbeitung (Ticket 2.5, G3–G5): idempotent und
 // reihenfolge-unabhängig. Jeder Handler prüft den Ist-Zustand über
@@ -74,6 +101,73 @@ async function saveMandateFromPaymentIntent(
   }
 }
 
+// G6: Zahlung eingegangen, aber Reservierung bereits abgelaufen (Order vom
+// Hold-Cleanup storniert) → Auto-Refund + Mail. Idempotent über Refund-Check.
+async function handleConflictAfterExpiry(
+  order: OrderWithUser,
+  pi: Stripe.PaymentIntent,
+): Promise<ProcessResult> {
+  const method = pi.payment_method_types[0] ?? "unknown";
+  await upsertStripePayment({
+    orderId: order.id,
+    providerRef: pi.id,
+    method,
+    amountCents: pi.amount,
+    status: "SUCCEEDED",
+    receivedAt: new Date(),
+  });
+
+  if (await hasRefundForOrder(order.id)) {
+    return { handled: true, note: "Konflikt bereits erstattet" };
+  }
+
+  const refund = await getStripe().refunds.create({ payment_intent: pi.id });
+  await recordAutoRefund({
+    orderId: order.id,
+    providerRef: pi.id,
+    refundProviderRef: refund.id,
+    amountCents: pi.amount,
+    method,
+    actorUserId: order.userId,
+  });
+
+  await sendEmail({
+    to: order.user.email,
+    subject: `Bestellung ${order.number}: Zahlung erstattet`,
+    react: CheckoutConflictMail({
+      brandName: getBrandName(),
+      orderNumber: order.number,
+      totalFormatted: formatCents(pi.amount),
+    }),
+    template: CHECKOUT_CONFLICT_TEMPLATE,
+    templateVersion: CHECKOUT_CONFLICT_VERSION,
+    userId: order.userId,
+    refType: "order",
+    refId: order.id,
+  });
+
+  return { handled: true, note: "Konflikt: auto-refund ausgelöst" };
+}
+
+async function sendOrderConfirmation(order: OrderWithUser): Promise<void> {
+  await sendEmail({
+    to: order.user.email,
+    subject: `Bestellbestätigung ${order.number}`,
+    react: OrderConfirmationMail({
+      brandName: getBrandName(),
+      orderNumber: order.number,
+      description: order.items[0]?.description ?? "Deine Buchung",
+      totalFormatted: formatCents(order.totalCents),
+      orderUrl: `${appUrl()}/bestellung/${order.id}`,
+    }),
+    template: ORDER_CONFIRMATION_TEMPLATE,
+    templateVersion: ORDER_CONFIRMATION_VERSION,
+    userId: order.userId,
+    refType: "order",
+    refId: order.id,
+  });
+}
+
 async function handlePaymentProcessing(
   pi: Stripe.PaymentIntent,
 ): Promise<ProcessResult> {
@@ -82,6 +176,9 @@ async function handlePaymentProcessing(
     paymentIntentId: pi.id,
   });
   if (!order) return { handled: false, note: "Order nicht gefunden" };
+  if (order.status === "CANCELLED") {
+    return handleConflictAfterExpiry(order, pi);
+  }
 
   const method = pi.payment_method_types[0] ?? "unknown";
   await linkPaymentIntent(order.id, pi.id, method);
@@ -100,7 +197,10 @@ async function handlePaymentProcessing(
   // G3: SEPA gilt bei processing als bezahlt, wenn confirmOnProcessing aktiv
   const settings = await getOrganisationSettings(order.organisationId);
   if (settings.confirmOnProcessing ?? true) {
-    await confirmFulfillmentTx(order.id);
+    const fulfilled = await confirmFulfillmentTx(order.id);
+    if (fulfilled.activatedSubscriptions > 0) {
+      await sendOrderConfirmation(order);
+    }
   }
   await saveMandateFromPaymentIntent(pi, order.userId);
   return { handled: true };
@@ -114,6 +214,9 @@ async function handlePaymentSucceeded(
     paymentIntentId: pi.id,
   });
   if (!order) return { handled: false, note: "Order nicht gefunden" };
+  if (order.status === "CANCELLED") {
+    return handleConflictAfterExpiry(order, pi);
+  }
 
   const method = pi.payment_method_types[0] ?? "unknown";
   await linkPaymentIntent(order.id, pi.id, method);
@@ -130,7 +233,10 @@ async function handlePaymentSucceeded(
     status: "PAID",
     paidAt: new Date(),
   });
-  await confirmFulfillmentTx(order.id);
+  const fulfilled = await confirmFulfillmentTx(order.id);
+  if (fulfilled.activatedSubscriptions > 0) {
+    await sendOrderConfirmation(order);
+  }
   await saveMandateFromPaymentIntent(pi, order.userId);
   return { handled: true };
 }
@@ -166,6 +272,21 @@ async function handlePaymentFailed(
     });
   }
   await cancelFulfillmentTx(order.id, "PAYMENT_FAILED");
+
+  await sendEmail({
+    to: order.user.email,
+    subject: `Zahlung fehlgeschlagen – Bestellung ${order.number}`,
+    react: PaymentFailedMail({
+      brandName: getBrandName(),
+      orderNumber: order.number,
+      wasConfirmed: wasProcessing.count > 0,
+    }),
+    template: PAYMENT_FAILED_TEMPLATE,
+    templateVersion: PAYMENT_FAILED_VERSION,
+    userId: order.userId,
+    refType: "order",
+    refId: order.id,
+  });
   return { handled: true };
 }
 

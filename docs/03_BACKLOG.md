@@ -43,8 +43,8 @@ Definition of Done (global): Code gemerged, Tests grün, Migration angewendet, i
 | [x] 2.3 | Order/OrderItem anlegen, Subscription `PENDING` + Bookings `HOLD` materialisieren, Hold-Ablauf per Cron | 4 | G1, D3 | Hold-Cleanup-Job idempotent |
 | [x] 2.4 | Stripe Checkout Session (SEPA, Karte; PayPal per Flag), Stripe-Customer pro User, `setup_future_usage` | 4 | G2 | Testkauf mit SEPA-Testkonto |
 | [x] 2.5 | Webhooks: `checkout.session.completed`, `payment_intent.processing/succeeded/payment_failed`, `charge.refunded`, `charge.dispute.created`; Idempotenz; Order-/Booking-Statusübergänge; `SepaMandate` speichern | 6 | G3–G5 | Tests mit Stripe-Fixture-Events in beliebiger Reihenfolge |
-| [ ] 2.6 | Bestellbestätigung + Zahlung-fehlgeschlagen-Mails; „Meine Dauerplätze" im Konto | 3 | J1 | – |
-| [ ] 2.7 | Verfügbarkeit im Webhook erneut prüfen, Konfliktfall → Auto-Refund + Mail | 2 | G6 | Test: Hold abgelaufen, Session bezahlt |
+| [x] 2.6 | Bestellbestätigung + Zahlung-fehlgeschlagen-Mails; „Meine Dauerplätze" im Konto | 3 | J1 | – |
+| [x] 2.7 | Verfügbarkeit im Webhook erneut prüfen, Konfliktfall → Auto-Refund + Mail | 2 | G6 | Test: Hold abgelaufen, Session bezahlt |
 
 ## Sprint 3 · KW 39 (21.–27.09.) · Rechnungen + Backoffice + Go-Live Stufe 1 · ~30 h
 

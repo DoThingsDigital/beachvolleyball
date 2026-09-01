@@ -1,12 +1,21 @@
 import { redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { formatCents, formatWeekday } from "@/lib/format";
 import { auth } from "@/src/auth";
+import { createRepositories } from "@/src/db/repositories";
 import { findProfile } from "@/src/db/users";
+import { getPublicShopContext } from "@/src/services/public-context";
 
 import { logout } from "@/app/(public)/login/actions";
 
 import { ProfileForm } from "./profile-form";
+
+const SUB_STATUS_LABELS: Record<string, string> = {
+  PENDING: "Warten auf Zahlung",
+  ACTIVE: "Aktiv",
+  CANCELLED: "Storniert",
+};
 
 export default async function KontoPage() {
   const session = await auth();
@@ -15,6 +24,13 @@ export default async function KontoPage() {
   }
 
   const profile = await findProfile(session.user.id);
+
+  const shop = await getPublicShopContext();
+  const subscriptions = shop
+    ? await createRepositories(shop.ctx).subscriptions.findManyForUser(
+        session.user.id,
+      )
+    : [];
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-lg flex-col gap-6 p-4">
@@ -38,6 +54,30 @@ export default async function KontoPage() {
           </span>
         ) : null}
       </p>
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-medium">Meine Dauerplätze</h2>
+        {subscriptions.length === 0 ? (
+          <p className="text-muted-foreground text-sm">
+            Noch keine Dauerplätze gebucht.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2" data-testid="my-subscriptions">
+            {subscriptions.map((sub) => (
+              <li key={sub.id} className="rounded-md border p-3 text-sm">
+                <p className="font-medium">
+                  {sub.court.name} · {formatWeekday(sub.weekday)}{" "}
+                  {sub.startTime} Uhr ({sub.durationMin} min)
+                </p>
+                <p className="text-muted-foreground mt-1">
+                  {sub.season.name} · {formatCents(sub.totalCents)} ·{" "}
+                  {SUB_STATUS_LABELS[sub.status] ?? sub.status}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <ProfileForm
         values={{
           name: profile?.name ?? "",

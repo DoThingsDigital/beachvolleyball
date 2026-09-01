@@ -54,7 +54,7 @@ Definition of Done (global): Code gemerged, Tests grün, Migration angewendet, i
 | [x] 3.2 | Rechnung bei `PAID`/`PROCESSING` automatisch, Mailversand mit Anhang, Download im Konto | 2 | H4 | – |
 | [x] 3.3 | Gutschrift/Stornorechnung, Admin-Erstattung über Stripe (ganz/teilweise), Refund-Webhook | 5 | H3, I1 | Teilerstattung erzeugt Teilgutschrift |
 | [x] 3.4 | Admin: Bestellungen (Liste, Filter, Detail, Rechnung neu senden) | 3 | K1 | – |
-| [ ] 3.5 | Admin: Kunden (Liste, Suche, Detail mit Bestellungen/Mandaten/Notizen), Dauerplatz kündigen mit anteiliger Erstattung | 4 | K2, F4 | – |
+| [x] 3.5 | Admin: Kunden (Liste, Suche, Detail mit Bestellungen/Mandaten/Notizen), Dauerplatz kündigen mit anteiliger Erstattung | 4 | K2, F4 | – |
 | [ ] 3.6 | Rechtstexte-Seiten (AGB, Datenschutz, Impressum, Widerrufshinweis) als versionierte Inhalte; Checkout-Checkbox | 2 | A3 | Texte kommen von Janick/Anwalt |
 | [ ] 3.7 | E2E: Registrierung → Dauerplatz kaufen (SEPA) → Rechnung erhalten; Fehlerfall Zahlung | 3 | NF9 | Läuft in CI |
 | [ ] 3.8 | Go-Live-Checkliste Stufe 1 (unten), Backup-Restore-Test, Stripe Live-Keys erst nach Aussteller-Entscheidung | 4 | NF6 | Checkliste abgehakt |

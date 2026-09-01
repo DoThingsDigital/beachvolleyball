@@ -145,6 +145,177 @@ export async function createSubscriptionOrderTx(
   });
 }
 
+export function setStripeCheckoutSession(
+  ctx: TenantContext,
+  orderId: string,
+  sessionId: string,
+) {
+  return prisma.order.updateMany({
+    where: { id: orderId, organisationId: ctx.organisationId },
+    data: { stripeCheckoutSessionId: sessionId },
+  });
+}
+
+// --- Webhook-Verarbeitung (Ticket 2.5) -------------------------------------
+// Bewusst konditionale Updates (updateMany mit Status im WHERE) statt harter
+// Zustandsautomat-Asserts: Stripe-Events kommen doppelt und in beliebiger
+// Reihenfolge (G4); ein No-op ist hier korrekt, kein Fehler. Die erlaubten
+// Übergänge entsprechen src/domain/state-machines.ts.
+
+export function findOrderByStripeRef(ref: {
+  orderId?: string | null;
+  paymentIntentId?: string | null;
+  checkoutSessionId?: string | null;
+}) {
+  const conditions = [];
+  if (ref.orderId) conditions.push({ id: ref.orderId });
+  if (ref.paymentIntentId)
+    conditions.push({ stripePaymentIntentId: ref.paymentIntentId });
+  if (ref.checkoutSessionId)
+    conditions.push({ stripeCheckoutSessionId: ref.checkoutSessionId });
+  if (conditions.length === 0) return null;
+  return prisma.order.findFirst({
+    where: { OR: conditions },
+    include: { items: true },
+  });
+}
+
+export function linkPaymentIntent(
+  orderId: string,
+  paymentIntentId: string,
+  paymentMethodType?: string | null,
+) {
+  return prisma.order.update({
+    where: { id: orderId },
+    data: {
+      stripePaymentIntentId: paymentIntentId,
+      ...(paymentMethodType ? { paymentMethodType } : {}),
+    },
+  });
+}
+
+export async function upsertStripePayment(entry: {
+  orderId: string;
+  providerRef: string;
+  method: string;
+  amountCents: number;
+  status: "PROCESSING" | "SUCCEEDED" | "FAILED" | "DISPUTED";
+  failureCode?: string | null;
+  receivedAt?: Date | null;
+  mandateId?: string | null;
+}) {
+  const existing = await prisma.payment.findFirst({
+    where: { orderId: entry.orderId, providerRef: entry.providerRef },
+  });
+  if (existing) {
+    // Endzustände nicht durch verspätete processing-Events zurückstufen
+    const isFinal =
+      existing.status === "SUCCEEDED" || existing.status === "FAILED";
+    const nextStatus =
+      isFinal && entry.status === "PROCESSING" ? existing.status : entry.status;
+    return prisma.payment.update({
+      where: { id: existing.id },
+      data: {
+        status: nextStatus,
+        failureCode: entry.failureCode ?? existing.failureCode,
+        receivedAt: entry.receivedAt ?? existing.receivedAt,
+        mandateId: entry.mandateId ?? existing.mandateId,
+      },
+    });
+  }
+  return prisma.payment.create({
+    data: { ...entry, provider: "STRIPE" },
+  });
+}
+
+/** Bestellung erfüllen: Bookings HOLD/PENDING_PAYMENT → CONFIRMED,
+ *  Subscription PENDING → ACTIVE. Idempotent. */
+export async function confirmFulfillmentTx(orderId: string) {
+  return prisma.$transaction(async (tx) => {
+    const items = await tx.orderItem.findMany({
+      where: { orderId },
+      select: { id: true },
+    });
+    const itemIds = items.map((i) => i.id);
+
+    const bookings = await tx.booking.updateMany({
+      where: {
+        orderItemId: { in: itemIds },
+        status: { in: ["HOLD", "PENDING_PAYMENT"] },
+      },
+      data: { status: "CONFIRMED", confirmedAt: new Date(), holdExpiresAt: null },
+    });
+    const subs = await tx.subscription.updateMany({
+      where: { orderItemId: { in: itemIds }, status: "PENDING" },
+      data: { status: "ACTIVE" },
+    });
+    return { confirmedBookings: bookings.count, activatedSubscriptions: subs.count };
+  });
+}
+
+/** Bestellung nach Zahlungsfehlschlag abwickeln: Bookings → CANCELLED,
+ *  Subscription → CANCELLED. Idempotent. */
+export async function cancelFulfillmentTx(orderId: string, reason: string) {
+  return prisma.$transaction(async (tx) => {
+    const items = await tx.orderItem.findMany({
+      where: { orderId },
+      select: { id: true },
+    });
+    const itemIds = items.map((i) => i.id);
+
+    await tx.booking.updateMany({
+      where: {
+        orderItemId: { in: itemIds },
+        status: { in: ["HOLD", "PENDING_PAYMENT", "CONFIRMED"] },
+      },
+      data: {
+        status: "CANCELLED",
+        cancelledAt: new Date(),
+        cancelReason: reason,
+        holdExpiresAt: null,
+      },
+    });
+    await tx.subscription.updateMany({
+      where: { orderItemId: { in: itemIds }, status: { in: ["PENDING", "ACTIVE"] } },
+      data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: reason },
+    });
+  });
+}
+
+export function transitionOrder(
+  orderId: string,
+  from: readonly ("DRAFT" | "AWAITING_PAYMENT" | "PROCESSING" | "PAID")[],
+  data: Prisma.OrderUpdateManyMutationInput,
+) {
+  return prisma.order.updateMany({
+    where: { id: orderId, status: { in: [...from] } },
+    data,
+  });
+}
+
+export function setUserSepaBlocked(userId: string) {
+  return prisma.user.update({
+    where: { id: userId },
+    data: { sepaBlocked: true },
+  });
+}
+
+export async function saveSepaMandate(entry: {
+  userId: string;
+  mandateRef: string;
+  ibanLast4: string;
+  accountHolder: string;
+  stripePaymentMethodId?: string | null;
+}) {
+  const existing = await prisma.sepaMandate.findUnique({
+    where: { mandateRef: entry.mandateRef },
+  });
+  if (existing) return existing;
+  return prisma.sepaMandate.create({
+    data: { ...entry, provider: "STRIPE", signedAt: new Date(), status: "ACTIVE" },
+  });
+}
+
 // --- Hold-Ablauf (Cron, idempotent) ----------------------------------------
 
 export async function expireHoldsTx(now: Date = new Date()) {

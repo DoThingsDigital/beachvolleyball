@@ -32,6 +32,20 @@ export function findProfile(userId: string) {
   });
 }
 
+export function findStripeCustomer(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, name: true, stripeCustomerId: true },
+  });
+}
+
+export function setStripeCustomerId(userId: string, stripeCustomerId: string) {
+  return prisma.user.update({
+    where: { id: userId },
+    data: { stripeCustomerId },
+  });
+}
+
 export function updateProfile(
   userId: string,
   data: {

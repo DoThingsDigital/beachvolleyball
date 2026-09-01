@@ -27,6 +27,13 @@ export async function recordWebhookEvent(entry: {
   }
 }
 
+export function getWebhookEvent(provider: string, eventId: string) {
+  return prisma.webhookEvent.findUnique({
+    where: { provider_eventId: { provider, eventId } },
+    select: { processedAt: true, error: true },
+  });
+}
+
 export function markWebhookEventProcessed(
   provider: string,
   eventId: string,

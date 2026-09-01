@@ -57,6 +57,11 @@ async function main() {
         name: "Admin",
         passwordHash,
         emailVerified: new Date(),
+        // Rechnungsadresse, damit der Admin lokal Testkäufe machen kann (A2)
+        billingStreet: "Musterstraße 1",
+        billingZip: "51063",
+        billingCity: "Köln",
+        billingCountry: "DE",
       },
     });
 

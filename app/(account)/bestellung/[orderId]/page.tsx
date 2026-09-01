@@ -5,6 +5,8 @@ import { auth } from "@/src/auth";
 import { createRepositories } from "@/src/db/repositories";
 import { getPublicShopContext } from "@/src/services/public-context";
 
+import { PayButton } from "./pay-button";
+
 const STATUS_LABELS: Record<string, string> = {
   AWAITING_PAYMENT: "Warten auf Zahlung",
   PROCESSING: "Zahlung wird verarbeitet",
@@ -67,10 +69,13 @@ export default async function BestellungPage({
       </div>
 
       {order.status === "AWAITING_PAYMENT" ? (
-        <p className="text-muted-foreground text-sm">
-          Deine Termine sind reserviert. Die Zahlung (SEPA/Karte) wird gerade
-          angebunden – Ticket 2.4.
-        </p>
+        <div className="flex flex-col gap-2">
+          <p className="text-muted-foreground text-sm">
+            Deine Termine sind für kurze Zeit reserviert. Schließe die Zahlung
+            ab, um sie verbindlich zu buchen.
+          </p>
+          <PayButton orderId={order.id} />
+        </div>
       ) : null}
     </main>
   );

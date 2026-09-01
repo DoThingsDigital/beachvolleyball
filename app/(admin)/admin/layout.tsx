@@ -37,6 +37,11 @@ export default async function AdminLayout({
     <div className="flex min-h-svh flex-col">
       <header className="bg-background sticky top-0 z-10 flex items-center justify-between gap-3 border-b p-3">
         <div className="flex items-center gap-3">
+          <Link href="/" aria-label="Zur Startseite" className="font-display text-lg font-extrabold">
+            <span className="text-foreground">Picco</span>{" "}
+            <span className="text-primary">Winter Beach</span>
+          </Link>
+          <span className="text-muted-foreground">·</span>
           <span className="font-semibold">Backoffice</span>
           <VenueSwitcher
             venues={venues.map((v) => ({ id: v.id, name: v.name }))}

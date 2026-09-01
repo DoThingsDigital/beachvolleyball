@@ -42,6 +42,9 @@ export default async function BestellungPage({
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-lg flex-col gap-6 p-4">
       <header className="flex flex-col gap-1">
+        <a href="/konto" className="text-muted-foreground text-sm hover:underline">
+          ← Zurück zum Konto
+        </a>
         <h1 className="text-2xl font-semibold">Bestellung {order.number}</h1>
         <p className="text-muted-foreground text-sm">
           {formatDateTime(order.createdAt)} · Status:{" "}

@@ -22,6 +22,13 @@ export const sendMagicLink: EmailConfig["sendVerificationRequest"] = async ({
     templateVersion: MAGIC_LINK_VERSION,
   });
   if (!result.ok) {
+    // Dev-Komfort: Resend-Testabsender liefert nur an die eigene Adresse –
+    // damit lokal mit beliebigen Adressen getestet werden kann, landet der
+    // Link in der Serverkonsole. In Produktion bleibt es ein harter Fehler.
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`\n[magic-link:dev-fallback] Link für ${identifier}:\n${url}\n`);
+      return;
+    }
     throw new Error("Anmeldelink konnte nicht versendet werden.");
   }
 };

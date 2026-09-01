@@ -37,11 +37,13 @@ function q(params: Record<string, string | undefined>): string {
   return `/kalender?${search.toString()}`;
 }
 
+// Zell-Zustände laut CI (Slot-Raster 5b): frei = weiß mit Border, Hover
+// coral-Ring; belegt = booked-bg mit stone-Text; ausgewählt = coral.
 const STATE_STYLES: Record<string, string> = {
-  FREI: "bg-accent hover:bg-accent/70",
-  BELEGT: "bg-foreground/80 text-background",
-  VEREIN: "bg-amber-200 text-amber-950 dark:bg-amber-800 dark:text-amber-50",
-  GESPERRT: "bg-muted text-muted-foreground line-through",
+  FREI: "bg-card border hover:border-primary hover:ring-1 hover:ring-primary",
+  BELEGT: "bg-booked text-stone",
+  VEREIN: "bg-ice/45 text-ice-deep",
+  GESPERRT: "bg-booked text-stone line-through",
 };
 
 const STATE_LABELS: Record<string, string> = {
@@ -163,10 +165,10 @@ export default async function KalenderPage({
               href={q({ tag: d.date })}
               aria-current={d.date === date ? "date" : undefined}
               className={
-                "rounded-md px-2 py-1 text-center text-sm " +
+                "rounded-full px-2.5 py-1 text-center text-sm font-semibold " +
                 (d.date === date
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-accent")
+                  ? "bg-foreground text-background"
+                  : "bg-card border hover:border-primary")
               }
             >
               <span className="block text-xs">{WEEKDAY_SHORT[i]}</span>
@@ -261,10 +263,12 @@ export default async function KalenderPage({
       </table>
 
       <p className="text-muted-foreground text-xs">
-        <span className="bg-accent rounded px-1">frei</span> ·{" "}
-        <span className="bg-foreground/80 text-background rounded px-1">belegt</span> ·{" "}
-        <span className="rounded bg-amber-200 px-1 text-amber-950">Verein</span> ·{" "}
-        <span className="bg-muted text-muted-foreground rounded px-1">gesperrt</span>{" "}
+        <span className="bg-card rounded border px-1.5">frei</span> ·{" "}
+        <span className="bg-booked text-stone rounded px-1.5">belegt</span> ·{" "}
+        <span className="bg-ice/45 text-ice-deep rounded px-1.5">Verein</span> ·{" "}
+        <span className="bg-booked text-stone rounded px-1.5 line-through">
+          gesperrt
+        </span>{" "}
         · Preise sind Nichtmitgliederpreise
       </p>
 

@@ -7,8 +7,12 @@ import { createRepositories } from "@/src/db/repositories";
 import { findProfile } from "@/src/db/users";
 import { getPublicShopContext } from "@/src/services/public-context";
 
+import { findUpcomingBookingsForUser } from "@/src/db/bookings";
+import { formatDateTime } from "@/lib/format";
+
 import { logout } from "@/app/(public)/login/actions";
 
+import { BookingList, type MyBooking } from "./booking-list";
 import { ProfileForm } from "./profile-form";
 
 const SUB_STATUS_LABELS: Record<string, string> = {
@@ -29,6 +33,25 @@ export default async function KontoPage() {
   const subscriptions = shop
     ? await createRepositories(shop.ctx).subscriptions.findManyForUser(
         session.user.id,
+      )
+    : [];
+
+  const upcoming: MyBooking[] = shop
+    ? (await findUpcomingBookingsForUser(shop.ctx, session.user.id)).map(
+        (b) => ({
+          id: b.id,
+          courtName: b.court.name,
+          whenFormatted: formatDateTime(b.startAt),
+          status: b.status as MyBooking["status"],
+          kind: b.kind as MyBooking["kind"],
+          cancellable:
+            b.kind === "CUSTOMER" &&
+            b.status === "CONFIRMED" &&
+            b.startAt.getTime() - Date.now() >=
+              b.venue.cancelHours * 60 * 60 * 1000,
+          cancelHours: b.venue.cancelHours,
+          orderId: b.orderItem?.orderId ?? null,
+        }),
       )
     : [];
 
@@ -54,6 +77,11 @@ export default async function KontoPage() {
           </span>
         ) : null}
       </p>
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-medium">Meine Buchungen</h2>
+        <BookingList bookings={upcoming} />
+      </section>
+
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-medium">Meine Dauerplätze</h2>
         {subscriptions.length === 0 ? (

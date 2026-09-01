@@ -68,11 +68,11 @@ Definition of Done (global): Code gemerged, Tests grün, Migration angewendet, i
 | [x] 4.1 | Verfügbarkeits-API für Wochenansicht (Courts × Slots, Zustände), Caching pro Woche/Standort | 5 | D1 | < 1 s für eine Woche |
 | [x] 4.2 | Öffentlicher Kalender (Woche/Tag, mobil), Preisvorschau, Auswahl mit Dauer | 8 | D1, D2, C4 | Tastaturbedienbar |
 | [x] 4.3 | Hold → Checkout für Einzelbuchung (Wiederverwendung Sprint 2), `sepaLeadDays`-Regel für Zahlarten | 5 | D3, D7 | – |
-| [ ] 4.4 | Buchungsbestätigung mit ICS, „Meine Buchungen", Kunden-Storno mit Frist, Erstattung/Guthaben je Regel | 6 | D5, D6, I2 | – |
-| [ ] 4.5 | Konfliktschutz-Test: 20 parallele Buchungen auf denselben Slot, genau eine gewinnt | 2 | D4 | – |
+| [x] 4.4 | Buchungsbestätigung mit ICS, „Meine Buchungen", Kunden-Storno mit Frist, Erstattung/Guthaben je Regel | 6 | D5, D6, I2 | – |
+| [x] 4.5 | Konfliktschutz-Test: 20 parallele Buchungen auf denselben Slot, genau eine gewinnt | 2 | D4 | – |
 | [ ] 4.6 | Mitgliedschaftsanfrage im Konto, Vereins-Admin-Freigabe, Mitgliederliste-Import (CSV E-Mails), Mitgliederpreis im Checkout | 6 | A4 | – |
 | [ ] 4.7 | Prüfen: Stripe Payment Element (eingebettet) statt Hosted Checkout für Einzelbuchung, wegen Hold-Dauer 15 min vs. Session-Mindestlaufzeit | 4 | G2 | Entscheidung dokumentiert |
-| [ ] 4.8 | Erinnerungs-Mail 24 h vorher (Cron), Storno-Mail | 4 | J2 | – |
+| [x] 4.8 | Erinnerungs-Mail 24 h vorher (Cron), Storno-Mail | 4 | J2 | – |
 
 ## Sprint 5 · KW 42–43 (12.–25.10.) · Sperren, Kontingent, Admin-Kalender · ~35 h
 

@@ -5,6 +5,9 @@ import { z } from "zod";
 
 import { auth } from "@/src/auth";
 import { updateProfile } from "@/src/db/users";
+import { DomainError } from "@/src/domain/errors";
+import { cancelBookingByCustomer } from "@/src/services/booking-cancellation";
+import { getPublicShopContext } from "@/src/services/public-context";
 
 export type ProfileFormState = {
   ok?: boolean;
@@ -80,4 +83,41 @@ export async function saveProfile(
   await updateProfile(session.user.id, parsed.data);
   revalidatePath("/konto");
   return { ok: true };
+}
+
+export type CancelBookingState = {
+  ok?: string;
+  error?: string;
+};
+
+export async function cancelMyBooking(
+  _prev: CancelBookingState,
+  formData: FormData,
+): Promise<CancelBookingState> {
+  const session = await auth();
+  if (!session?.user) return { error: "Nicht angemeldet." };
+
+  const bookingId = String(formData.get("bookingId") ?? "");
+  if (!bookingId) return { error: "Buchung fehlt." };
+
+  const shop = await getPublicShopContext();
+  if (!shop) return { error: "Aktuell nicht möglich." };
+
+  try {
+    const result = await cancelBookingByCustomer(shop.ctx, {
+      bookingId,
+      userId: session.user.id,
+    });
+    revalidatePath("/konto");
+    if (result.refundMode === "MONEY" && result.creditNoteNumber) {
+      return { ok: `Storniert – Erstattung ist unterwegs (${result.creditNoteNumber}).` };
+    }
+    if (result.refundMode === "CREDIT" && result.amountCents > 0) {
+      return { ok: "Storniert – der Betrag wurde deinem Guthaben gutgeschrieben." };
+    }
+    return { ok: "Buchung storniert." };
+  } catch (error) {
+    if (error instanceof DomainError) return { error: error.message };
+    throw error;
+  }
 }

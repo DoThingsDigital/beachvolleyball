@@ -23,5 +23,7 @@ export async function cleanupTestDb() {
   await prisma.organisation.deleteMany({});
   await prisma.emailLog.deleteMany({});
   await prisma.auditLog.deleteMany({});
+  await prisma.creditLedger.deleteMany({});
+  await prisma.sepaMandate.deleteMany({});
   await prisma.user.deleteMany({ where: { email: { startsWith: "int-test-" } } });
 }

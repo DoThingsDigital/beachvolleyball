@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#EBE7DF; font-family:'Figtree',sans-serif; color:#2B2118; }
+  a { color:#C43D20; } a:hover { color:#8A2A12; }
+</style>
+</helmet>
+<section style="padding:48px; display:flex; flex-direction:column; gap:40px; max-width:2400px;">
+  <div style="display:flex; align-items:baseline; gap:16px; flex-wrap:wrap;">
+    <div style="font-family:'Baloo 2',sans-serif; font-weight:800; font-size:32px;">Picco Winter Beach — Buchungssystem</div>
+    <div style="font-size:15px; color:#6B655C;">Standort-Design mit Glow-Bildmarke · Vorlage für Claude-Code-Handoff</div>
+  </div>
+
+  <!-- 5a DESKTOP START -->
+  <div id="5a" style="background:#fff; border-radius:16px; padding:36px 40px; box-shadow:0 1px 3px rgba(0,0,0,0.06);" data-screen-label="Desktop Start">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:24px;">
+      <span style="background:#2B2118; color:#fff; font-size:13px; font-weight:700; padding:4px 10px; border-radius:6px;">5a</span>
+      <div style="font-size:22px; font-weight:700;">Desktop — Startseite</div>
+    </div>
+    <div style="max-width:1040px; border:1px solid #E5E1D8; border-radius:14px; overflow:hidden; background:#FFF6EA;">
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 32px; border-bottom:1px solid #EFE4CF;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:42px; height:16px; position:relative;">
+            <div style="position:absolute; inset:0; border-radius:50% 50% 0 0 / 100% 100% 0 0; background:linear-gradient(180deg, #FFB347, #FF6B4A);"></div>
+            <div style="position:absolute; left:-3px; right:-3px; bottom:-4px; height:2.5px; border-radius:2px; background:#2B2118;"></div>
+          </div>
+          <div style="font-family:'Baloo 2',sans-serif; font-weight:800; font-size:20px; line-height:1;">Picco <span style="color:#FF6B4A;">Winter Beach</span></div>
+        </div>
+        <div style="display:flex; align-items:center; gap:22px; font-size:14px; font-weight:600;">
+          <span>Slots</span><span>Events</span><span>Preise</span><span>Community</span>
+          <span style="background:#FF6B4A; color:#fff; padding:10px 22px; border-radius:999px; font-family:'Baloo 2',sans-serif; font-weight:700;">Feld buchen</span>
+        </div>
+      </div>
+      <div style="background:linear-gradient(160deg, #FF8A5C 0%, #FF6B4A 55%, #E8543A 100%); padding:56px 40px 50px; position:relative; overflow:hidden;">
+        <div style="position:absolute; right:-40px; bottom:-60px; width:340px; height:150px; border-radius:50% 50% 0 0 / 100% 100% 0 0; background:linear-gradient(180deg, #FFD97A, #FFB347); opacity:0.9; box-shadow:0 0 80px rgba(255,217,122,0.6);"></div>
+        <div style="font-family:'Baloo 2',sans-serif; font-weight:800; font-size:48px; line-height:1.04; color:#FFF6EA; max-width:540px; position:relative;">Draußen Winter.<br>Hier: Sommer.</div>
+        <div style="font-size:17px; color:#FFE0B8; margin-top:14px; max-width:460px; line-height:1.5; position:relative;">Vier Beach-Felder, 25 Grad, Sand unter den Füßen — November bis April in Köln.</div>
+        <div style="display:flex; gap:12px; margin-top:26px; align-items:center; position:relative;">
+          <span style="background:#FFF6EA; color:#C43D20; padding:13px 28px; border-radius:999px; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px;">Jetzt Slot sichern</span>
+          <span style="background:rgba(14,78,96,0.9); color:#8ED8EC; padding:8px 14px; border-radius:999px; font-size:13.5px; font-weight:700;">❄ −2° draußen · 25° drinnen</span>
+        </div>
+      </div>
+      <div style="display:flex; gap:14px; padding:22px 32px;">
+        <div style="flex:1; background:#fff; border-radius:12px; padding:18px 20px;"><div style="font-family:'Baloo 2',sans-serif; font-weight:700; font-size:17px;">Feld buchen</div><div style="font-size:13.5px; color:#6B655C; margin-top:4px; line-height:1.45;">60 oder 90 Minuten — du wählst den Slot.</div></div>
+        <div style="flex:1; background:#fff; border-radius:12px; padding:18px 20px;"><div style="font-family:'Baloo 2',sans-serif; font-weight:700; font-size:17px;">Events &amp; Cups</div><div style="font-size:13.5px; color:#6B655C; margin-top:4px; line-height:1.45;">Night Cups, Firmenevents, Liga-Abende.</div></div>
+        <div style="flex:1; background:#F2E3C6; border-radius:12px; padding:18px 20px;"><div style="font-size:13px; font-weight:700; color:#6B5432;">Nächster freier Slot</div><div style="font-size:15px; font-weight:700; margin-top:4px;">Heute 19:00 · Feld 3 · 34 €</div></div>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 32px 18px; border-top:1px solid #EFE4CF;">
+        <div style="font-size:12.5px; color:#9A9284;">Impressum · Datenschutz · AGB</div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:11px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:#9A9284;">by</span>
+          <div style="width:22px; height:8px; position:relative;">
+            <div style="position:absolute; inset:0; border-radius:50% 50% 0 0 / 100% 100% 0 0; background:#9A9284;"></div>
+            <div style="position:absolute; left:-2px; right:-2px; bottom:-2.5px; height:1.5px; background:#9A9284;"></div>
+          </div>
+          <span style="font-size:11px; font-weight:800; letter-spacing:0.18em; color:#9A9284;">SUMMERDOME</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5b DESKTOP SLOT-RASTER -->
+  <div id="5b" style="background:#fff; border-radius:16px; padding:36px 40px; box-shadow:0 1px 3px rgba(0,0,0,0.06);" data-screen-label="Desktop Slot-Raster">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:24px;">
+      <span style="background:#2B2118; color:#fff; font-size:13px; font-weight:700; padding:4px 10px; border-radius:6px;">5b</span>
+      <div style="font-size:22px; font-weight:700;">Desktop — Slot-Raster</div>
+    </div>
+    <div style="max-width:1040px; border:1px solid #E5E1D8; border-radius:14px; overflow:hidden; background:#FFF6EA;">
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 32px; border-bottom:1px solid #EFE4CF;">
+        <div style="font-family:'Baloo 2',sans-serif; font-weight:800; font-size:19px;">Picco <span style="color:#FF6B4A;">Winter Beach</span></div>
+        <div style="display:flex; align-items:center; gap:14px;">
+          <span style="font-size:13.5px; font-weight:600; color:#6B655C;">Schritt 1 von 3 · Slot wählen</span>
+          <div style="display:flex; gap:4px;"><div style="width:26px; height:5px; border-radius:3px; background:#FF6B4A;"></div><div style="width:26px; height:5px; border-radius:3px; background:#E5E1D8;"></div><div style="width:26px; height:5px; border-radius:3px; background:#E5E1D8;"></div></div>
+        </div>
+      </div>
+      <div style="padding:22px 32px 8px; display:flex; gap:8px; align-items:center;">
+        <span style="background:#2B2118; color:#fff; font-size:13.5px; font-weight:700; padding:8px 16px; border-radius:999px;">Di 12.01.</span>
+        <span style="background:#fff; color:#6B655C; font-size:13.5px; font-weight:600; padding:8px 16px; border-radius:999px; border:1px solid #E5E1D8;">Mi 13.01.</span>
+        <span style="background:#fff; color:#6B655C; font-size:13.5px; font-weight:600; padding:8px 16px; border-radius:999px; border:1px solid #E5E1D8;">Do 14.01.</span>
+        <span style="background:#fff; color:#6B655C; font-size:13.5px; font-weight:600; padding:8px 16px; border-radius:999px; border:1px solid #E5E1D8;">Fr 15.01.</span>
+        <span style="margin-left:auto; background:#8ED8EC; color:#0E4E60; font-size:12.5px; font-weight:700; padding:6px 12px; border-radius:999px;">60 Min pro Slot</span>
+      </div>
+      <div style="padding:14px 32px 10px;">
+        <div style="display:grid; grid-template-columns:64px repeat(4, 1fr); gap:6px;">
+          <div></div>
+          <div style="font-size:13px; font-weight:700; text-align:center; padding:6px 0;">Feld 1</div>
+          <div style="font-size:13px; font-weight:700; text-align:center; padding:6px 0;">Feld 2</div>
+          <div style="font-size:13px; font-weight:700; text-align:center; padding:6px 0;">Feld 3</div>
+          <div style="font-size:13px; font-weight:700; text-align:center; padding:6px 0;">Feld 4</div>
+          <sc-for list="{{ slotRows }}" as="row" hint-placeholder-count="6">
+            <div style="font-size:13px; font-weight:600; color:#6B655C; display:flex; align-items:center;">{{ row.time }}</div>
+            <sc-for list="{{ row.cells }}" as="c" hint-placeholder-count="4">
+              <div style="min-height:46px; display:flex;">
+                <sc-if value="{{ c.free }}" hint-placeholder-val="{{ true }}"><div style="flex:1; background:#fff; border:1px solid #E5E1D8; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#C43D20; cursor:pointer;" style-hover="border-color:#FF6B4A; box-shadow:0 0 0 1px #FF6B4A;">{{ c.price }}</div></sc-if>
+                <sc-if value="{{ c.booked }}"><div style="flex:1; background:#EFE9DD; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:12.5px; font-weight:600; color:#9A9284;">Belegt</div></sc-if>
+                <sc-if value="{{ c.selected }}"><div style="flex:1; background:#FF6B4A; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; color:#fff;">✓ {{ c.price }}</div></sc-if>
+              </div>
+            </sc-for>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; background:#2B2118; padding:16px 32px; margin-top:10px;">
+        <div style="color:#FFF6EA; font-size:15px;"><b>Feld 3 · 19:00–20:00</b> <span style="color:#9A9284;">· Di 12.01. · 34 €</span></div>
+        <span style="background:#FF6B4A; color:#fff; padding:11px 24px; border-radius:999px; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:15px;">Weiter</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5c DESKTOP CHECKOUT -->
+  <div id="5c" style="background:#fff; border-radius:16px; padding:36px 40px; box-shadow:0 1px 3px rgba(0,0,0,0.06);" data-screen-label="Desktop Checkout">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:24px;">
+      <span style="background:#2B2118; color:#fff; font-size:13px; font-weight:700; padding:4px 10px; border-radius:6px;">5c</span>
+      <div style="font-size:22px; font-weight:700;">Desktop — Checkout</div>
+    </div>
+    <div style="max-width:1040px; border:1px solid #E5E1D8; border-radius:14px; overflow:hidden; background:#FFF6EA;">
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 32px; border-bottom:1px solid #EFE4CF;">
+        <div style="font-family:'Baloo 2',sans-serif; font-weight:800; font-size:19px;">Picco <span style="color:#FF6B4A;">Winter Beach</span></div>
+        <div style="display:flex; align-items:center; gap:14px;">
+          <span style="font-size:13.5px; font-weight:600; color:#6B655C;">Schritt 2 von 3 · Deine Daten</span>
+          <div style="display:flex; gap:4px;"><div style="width:26px; height:5px; border-radius:3px; background:#FF6B4A;"></div><div style="width:26px; height:5px; border-radius:3px; background:#FF6B4A;"></div><div style="width:26px; height:5px; border-radius:3px; background:#E5E1D8;"></div></div>
+        </div>
+      </div>
+      <div style="display:flex; gap:28px; padding:30px 32px 34px;">
+        <div style="flex:1.4; display:flex; flex-direction:column; gap:14px;">
+          <div style="font-family:'Baloo 2',sans-serif; font-weight:700; font-size:20px;">Wer kommt zum Sommer?</div>
+          <div style="display:flex; gap:12px;">
+            <div style="flex:1;"><div style="font-size:13px; font-weight:700; margin-bottom:6px;">Vorname</div><div style="background:#fff; border:1px solid #E5E1D8; border-radius:10px; min-height:46px; display:flex; align-items:center; padding:0 14px; font-size:15px;">Lena</div></div>
+            <div style="flex:1;"><div style="font-size:13px; font-weight:700; margin-bottom:6px;">Nachname</div><div style="background:#fff; border:1px solid #E5E1D8; border-radius:10px; min-height:46px; display:flex; align-items:center; padding:0 14px; font-size:15px;">Weber</div></div>
+          </div>
+          <div><div style="font-size:13px; font-weight:700; margin-bottom:6px;">E-Mail</div><div style="background:#fff; border:2px solid #FF6B4A; border-radius:10px; min-height:46px; display:flex; align-items:center; padding:0 14px; font-size:15px;">lena.weber@<span style="color:#9A9284;">|</span></div><div style="font-size:12.5px; color:#6B655C; margin-top:5px;">Hierhin schicken wir deine Buchungsbestätigung.</div></div>
+          <div><div style="font-size:13px; font-weight:700; margin-bottom:6px;">Zahlungsart</div>
+            <div style="display:flex; gap:10px;">
+              <div style="flex:1; background:#fff; border:2px solid #2B2118; border-radius:10px; min-height:46px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px;">✓ PayPal</div>
+              <div style="flex:1; background:#fff; border:1px solid #E5E1D8; border-radius:10px; min-height:46px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:14px; color:#6B655C;">Karte</div>
+              <div style="flex:1; background:#fff; border:1px solid #E5E1D8; border-radius:10px; min-height:46px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:14px; color:#6B655C;">Vor Ort</div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1; align-self:flex-start; background:#fff; border-radius:12px; padding:22px 24px; display:flex; flex-direction:column; gap:12px;">
+          <div style="font-family:'Baloo 2',sans-serif; font-weight:700; font-size:17px;">Deine Buchung</div>
+          <div style="display:flex; justify-content:space-between; font-size:14.5px;"><span>Feld 3 · 60 Min</span><b>34,00 €</b></div>
+          <div style="display:flex; justify-content:space-between; font-size:14.5px; color:#6B655C;"><span>Di 12.01. · 19:00–20:00</span><span></span></div>
+          <div style="height:1px; background:#E5E1D8;"></div>
+          <div style="display:flex; justify-content:space-between; font-size:16px;"><b>Gesamt</b><b>34,00 €</b></div>
+          <div style="background:#FF6B4A; color:#fff; border-radius:999px; min-height:48px; display:flex; align-items:center; justify-content:center; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px;">Verbindlich buchen</div>
+          <div style="font-size:12px; color:#9A9284; text-align:center;">Kostenlos stornierbar bis 24 h vorher</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5d MOBILE -->
+  <div id="5d" style="background:#fff; border-radius:16px; padding:36px 40px; box-shadow:0 1px 3px rgba(0,0,0,0.06);" data-screen-label="Mobile Screens">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:24px;">
+      <span style="background:#2B2118; color:#fff; font-size:13px; font-weight:700; padding:4px 10px; border-radius:6px;">5d</span>
+      <div style="font-size:22px; font-weight:700;">Mobile — Start · Slots · Bestätigung</div>
+    </div>
+    <div style="display:flex; gap:28px; flex-wrap:wrap;">
+      <div style="width:300px; border-radius:34px; border:9px solid #2B2118; overflow:hidden; background:#FFF6EA;">
+        <div style="background:linear-gradient(165deg, #FF8A5C 0%, #E8543A 100%); padding:24px 20px 26px; position:relative; overflow:hidden;">
+          <div style="position:absolute; right:-30px; bottom:-34px; width:170px; height:76px; border-radius:50% 50% 0 0 / 100% 100% 0 0; background:linear-gradient(180deg, #FFD97A, #FFB347); box-shadow:0 0 50px rgba(255,217,122,0.55);"></div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="width:26px; height:10px; position:relative;">
+              <div style="position:absolute; inset:0; border-radius:50% 50% 0 0 / 100% 100% 0 0; background:#FFD97A;"></div>
+              <div style="position:absolute; left:-2px; right:-2px; bottom:-3px; height:2px; background:#FFF6EA;"></div>
+            </div>
+            <div style="font-family:'Baloo 2',sans-serif; font-weight:800; font-size:16px; color:#FFF6EA;">Picco Winter Beach</div>
+          </div>
+          <div style="font-family:'Baloo 2',sans-serif; font-weight:800; font-size:27px; line-height:1.08; color:#FFF6EA; margin-top:16px; position:relative;">Draußen Winter.<br>Hier: Sommer.</div>
+          <div style="display:inline-flex; background:rgba(14,78,96,0.9); color:#8ED8EC; padding:6px 12px; border-radius:999px; font-size:12px; font-weight:700; margin-top:12px; position:relative;">❄ −2° / 25°</div>
+        </div>
+        <div style="padding:16px 16px 20px; display:flex; flex-direction:column; gap:11px;">
+          <div style="background:#FF6B4A; color:#fff; border-radius:999px; min-height:50px; display:flex; align-items:center; justify-content:center; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:17px;">Feld buchen</div>
+          <div style="background:#fff; border:2px solid #2B2118; border-radius:999px; min-height:46px; display:flex; align-items:center; justify-content:center; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:15px;">Events ansehen</div>
+          <div style="background:#F2E3C6; border-radius:12px; padding:13px 15px;"><div style="font-size:12.5px; font-weight:700; color:#6B5432;">Nächster freier Slot</div><div style="font-size:14.5px; font-weight:700; margin-top:2px;">Heute 19:00 · Feld 3 · 34 €</div></div>
+        </div>
+      </div>
+      <div style="width:300px; border-radius:34px; border:9px solid #2B2118; overflow:hidden; background:#FFF6EA;">
+        <div style="padding:18px 18px 10px; display:flex; align-items:center; justify-content:space-between;">
+          <div style="font-family:'Baloo 2',sans-serif; font-weight:800; font-size:17px;">Slot wählen</div>
+          <div style="font-size:13px; font-weight:600; color:#6B655C;">Di 12.01.</div>
+        </div>
+        <div style="padding:0 14px 16px; display:flex; flex-direction:column; gap:8px;">
+          <sc-for list="{{ mobileSlots }}" as="s" hint-placeholder-count="5">
+            <div style="display:flex; min-height:50px;">
+              <sc-if value="{{ s.selected }}"><div style="flex:1; background:#FF6B4A; color:#fff; border-radius:12px; padding:0 15px; display:flex; align-items:center; justify-content:space-between;"><span style="font-weight:700; font-size:14.5px;">{{ s.label }}</span><span style="font-weight:800; font-size:14.5px;">✓ {{ s.price }}</span></div></sc-if>
+              <sc-if value="{{ s.plain }}" hint-placeholder-val="{{ true }}"><div style="flex:1; background:#fff; border:1px solid #E5E1D8; border-radius:12px; padding:0 15px; display:flex; align-items:center; justify-content:space-between;"><span style="font-weight:600; font-size:14.5px;">{{ s.label }}</span><span style="font-weight:700; font-size:14.5px; color:#C43D20;">{{ s.price }}</span></div></sc-if>
+            </div>
+          </sc-for>
+          <div style="background:#2B2118; color:#FFF6EA; border-radius:999px; min-height:50px; display:flex; align-items:center; justify-content:center; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px; margin-top:4px;">Weiter · 34 €</div>
+        </div>
+      </div>
+      <div style="width:300px; border-radius:34px; border:9px solid #2B2118; overflow:hidden; background:#FFF6EA; display:flex; flex-direction:column;">
+        <div style="background:linear-gradient(165deg, #FF8A5C, #E8543A); padding:30px 20px; display:flex; flex-direction:column; align-items:center; gap:12px;">
+          <div style="width:64px; height:64px; border-radius:50%; background:#FFF6EA; display:flex; align-items:center; justify-content:center; font-size:28px; color:#C43D20;">✓</div>
+          <div style="font-family:'Baloo 2',sans-serif; font-weight:800; font-size:22px; color:#FFF6EA; text-align:center; line-height:1.15;">Dein Sommer<br>ist gebucht!</div>
+        </div>
+        <div style="padding:16px 16px 20px; display:flex; flex-direction:column; gap:11px;">
+          <div style="background:#fff; border:1px solid #E5E1D8; border-radius:12px; padding:14px 16px;">
+            <b style="font-size:14.5px;">Feld 3 · Di 12.01. · 19:00–20:00</b>
+            <div style="font-size:12.5px; color:#6B655C; margin-top:3px;">Picco Winter Beach Köln · 34,00 € · PayPal</div>
+          </div>
+          <div style="background:#8ED8EC; color:#0E4E60; border-radius:12px; padding:12px 16px; font-size:13px; font-weight:700;">Tipp: Schuhe aus, Handtuch mit — drinnen sind 25°.</div>
+          <div style="background:#fff; border:2px solid #2B2118; border-radius:999px; min-height:46px; display:flex; align-items:center; justify-content:center; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:15px;">Zum Kalender hinzufügen</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const F = p => ({ free: true, booked: false, selected: false, price: p });
+    const B = () => ({ free: false, booked: true, selected: false, price: "" });
+    const S = p => ({ free: false, booked: false, selected: true, price: p });
+    return {
+      slotRows: [
+        { time: "16:00", cells: [F("28 \u20ac"), F("28 \u20ac"), B(), F("28 \u20ac")] },
+        { time: "17:00", cells: [B(), F("34 \u20ac"), F("34 \u20ac"), B()] },
+        { time: "18:00", cells: [B(), B(), F("34 \u20ac"), F("34 \u20ac")] },
+        { time: "19:00", cells: [F("34 \u20ac"), B(), S("34 \u20ac"), B()] },
+        { time: "20:00", cells: [F("34 \u20ac"), F("34 \u20ac"), B(), F("34 \u20ac")] },
+        { time: "21:00", cells: [F("30 \u20ac"), B(), F("30 \u20ac"), F("30 \u20ac")] }
+      ],
+      mobileSlots: [
+        { label: "17:00 \u00b7 Feld 2", price: "34 \u20ac", plain: true, selected: false },
+        { label: "18:00 \u00b7 Feld 3", price: "34 \u20ac", plain: true, selected: false },
+        { label: "19:00 \u00b7 Feld 3", price: "34 \u20ac", plain: false, selected: true },
+        { label: "20:00 \u00b7 Feld 1", price: "34 \u20ac", plain: true, selected: false },
+        { label: "21:00 \u00b7 Feld 4", price: "30 \u20ac", plain: true, selected: false }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

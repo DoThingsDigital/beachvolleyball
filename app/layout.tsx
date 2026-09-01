@@ -1,21 +1,26 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Baloo_2, Figtree } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+import { Endorsement } from "@/components/brand/logo";
+
+// CI „Picco Winter Beach": Baloo 2 für Headlines/Buttons, Figtree für UI.
+const baloo = Baloo_2({
+  variable: "--font-baloo",
   subsets: ["latin"],
+  weight: ["600", "700", "800"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const figtree = Figtree({
+  variable: "--font-figtree",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Buchung",
-  description: "Platz- und Dauerplatzbuchung",
+  title: "Picco Winter Beach – Buchung",
+  description:
+    "Draußen Winter. Hier: Sommer. Beachvolleyball-Plätze und Dauerplätze buchen.",
 };
 
 const LEGAL_LINKS = [
@@ -32,18 +37,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${baloo.variable} ${figtree.variable} antialiased`}>
         {children}
-        <footer className="text-muted-foreground border-t p-4 text-center text-xs">
-          <nav className="flex flex-wrap justify-center gap-x-4 gap-y-1">
-            {LEGAL_LINKS.map((link) => (
-              <Link key={link.href} href={link.href} className="hover:underline">
-                {link.label}
-              </Link>
-            ))}
-          </nav>
+        <footer className="border-divider-warm border-t p-4">
+          <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3">
+            <nav className="text-stone flex flex-wrap gap-x-4 gap-y-1 text-xs">
+              {LEGAL_LINKS.map((link) => (
+                <Link key={link.href} href={link.href} className="hover:underline">
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+            <Endorsement />
+          </div>
         </footer>
       </body>
     </html>

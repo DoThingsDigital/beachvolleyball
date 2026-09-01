@@ -6,6 +6,7 @@ export type DomainErrorCode =
   | "INVALID_TRANSITION"
   | "SEASON_NOT_BOOKABLE"
   | "BILLING_ADDRESS_REQUIRED"
+  | "CANCEL_DEADLINE_PASSED"
   | "NOT_FOUND";
 
 // Fachliche Fehler tragen einen stabilen Code; Stacktraces bleiben serverseitig.

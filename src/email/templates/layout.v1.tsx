@@ -4,11 +4,13 @@ import type { ReactNode } from "react";
 // dunkle Schrift auf hellem Grund (breite Client-Kompatibilität).
 // brandName kommt aus der Konfiguration (MAIL_BRAND_NAME), nie hardcodiert.
 
+// Farben aus der Picco-CI (shell/ink/coral); Mail-Clients bekommen
+// Systemschriften, die Web-App lädt Baloo/Figtree.
 const styles = {
   body: {
     margin: 0,
     padding: 0,
-    backgroundColor: "#f4f4f5",
+    backgroundColor: "#FFF6EA",
     fontFamily: "Arial, Helvetica, sans-serif",
   },
   container: {
@@ -18,18 +20,19 @@ const styles = {
   },
   card: {
     backgroundColor: "#ffffff",
-    borderRadius: "8px",
+    borderRadius: "12px",
     padding: "32px 24px",
+    border: "1px solid #E5E1D8",
   },
   brand: {
     fontSize: "18px",
-    fontWeight: 700 as const,
-    color: "#18181b",
+    fontWeight: 800 as const,
+    color: "#2B2118",
     marginBottom: "24px",
   },
   footer: {
     fontSize: "12px",
-    color: "#71717a",
+    color: "#9A9284",
     marginTop: "24px",
     lineHeight: "1.5",
   },
@@ -63,23 +66,23 @@ export function EmailLayout({
 export const emailStyles = {
   text: {
     fontSize: "14px",
-    color: "#3f3f46",
+    color: "#2B2118",
     lineHeight: "1.6",
     margin: "0 0 16px",
   },
   button: {
     display: "inline-block",
-    backgroundColor: "#18181b",
+    backgroundColor: "#FF6B4A",
     color: "#ffffff",
-    padding: "12px 24px",
-    borderRadius: "6px",
+    padding: "13px 26px",
+    borderRadius: "999px",
     fontSize: "14px",
-    fontWeight: 600 as const,
+    fontWeight: 700 as const,
     textDecoration: "none",
   },
   linkFallback: {
     fontSize: "12px",
-    color: "#71717a",
+    color: "#9A9284",
     wordBreak: "break-all" as const,
     margin: "16px 0 0",
   },

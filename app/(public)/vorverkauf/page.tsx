@@ -171,10 +171,10 @@ export default async function VorverkaufPage({
                         })}
                         aria-label={`${WEEKDAY_LABELS[i]} ${time}, ${free} Plätze frei`}
                         className={
-                          "block rounded p-1.5 " +
+                          "block rounded-lg p-1.5 font-semibold " +
                           (isSelected
                             ? "bg-primary text-primary-foreground"
-                            : "bg-accent hover:bg-accent/70")
+                            : "bg-card text-coral-deep border hover:border-primary hover:ring-1 hover:ring-primary")
                         }
                       >
                         {free}

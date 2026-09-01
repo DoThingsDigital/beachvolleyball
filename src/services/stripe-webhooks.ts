@@ -36,6 +36,8 @@ import {
   PaymentFailedMail,
 } from "@/src/email/templates/payment-failed-mail.v1";
 import { markRefundByProviderRef } from "@/src/db/refunds";
+import { findBookingsForOrder } from "@/src/db/orders";
+import { buildIcs } from "@/lib/ics";
 import { createInvoiceForOrder } from "./invoices";
 import { readInvoicePdf } from "./storage";
 import { getStripe } from "./stripe";
@@ -181,6 +183,26 @@ async function issueAndSendInvoice(order: OrderWithUser): Promise<void> {
 }
 
 async function sendOrderConfirmation(order: OrderWithUser): Promise<void> {
+  // D5: Einzelbuchungen bekommen den Termin als ICS-Anhang mit
+  const attachments: { filename: string; content: Buffer }[] = [];
+  if (order.items.some((i) => i.productType === "SINGLE_BOOKING")) {
+    const bookings = await findBookingsForOrder(order.id);
+    for (const booking of bookings) {
+      const ics = buildIcs({
+        uid: `booking-${booking.id}@dtd-booking`,
+        title: `${getBrandName()} – ${booking.court.name}`,
+        description: `Buchung ${order.number}`,
+        location: `${booking.venue.name}, ${booking.venue.street}, ${booking.venue.zip} ${booking.venue.city}`,
+        startAt: booking.startAt,
+        endAt: booking.endAt,
+      });
+      attachments.push({
+        filename: `termin-${booking.startAt.toISOString().slice(0, 10)}.ics`,
+        content: Buffer.from(ics, "utf8"),
+      });
+    }
+  }
+
   await sendEmail({
     to: order.user.email,
     subject: `Bestellbestätigung ${order.number}`,
@@ -196,6 +218,7 @@ async function sendOrderConfirmation(order: OrderWithUser): Promise<void> {
     userId: order.userId,
     refType: "order",
     refId: order.id,
+    attachments: attachments.length > 0 ? attachments : undefined,
   });
 }
 

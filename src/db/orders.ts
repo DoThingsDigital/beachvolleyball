@@ -167,6 +167,18 @@ export function setStripeCheckoutSession(
   });
 }
 
+/** Buchungen einer Bestellung inkl. Platz/Standort (für Mails mit ICS). */
+export function findBookingsForOrder(orderId: string) {
+  return prisma.booking.findMany({
+    where: { orderItem: { orderId } },
+    include: {
+      court: { select: { name: true } },
+      venue: { select: { name: true, street: true, zip: true, city: true } },
+    },
+    orderBy: { startAt: "asc" },
+  });
+}
+
 // --- Einzelbuchung (Ticket 4.3, D3) ----------------------------------------
 
 export type SingleBookingOrderInput = {

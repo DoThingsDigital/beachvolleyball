@@ -51,7 +51,7 @@ export async function registerCustomer(params: {
 
   const token = await createVerificationToken(params.email);
   const url = `${params.confirmBaseUrl}/registrieren/bestaetigen?email=${encodeURIComponent(params.email)}&token=${token}`;
-  await sendEmail({
+  const result = await sendEmail({
     to: params.email,
     subject: "Bitte E-Mail-Adresse bestätigen",
     react: VerifyEmailMail({ url, brandName: getBrandName() }),
@@ -61,6 +61,12 @@ export async function registerCustomer(params: {
     refType: "registration",
     refId: user.id,
   });
+  if (!result.ok && process.env.NODE_ENV !== "production") {
+    // Dev-Komfort bis zur Resend-Domain-Verifizierung (siehe magic-link.v1)
+    console.log(
+      `\n[registrierung:dev-fallback] Bestätigungslink für ${params.email}:\n${url}\n`,
+    );
+  }
 
   return { ok: true };
 }

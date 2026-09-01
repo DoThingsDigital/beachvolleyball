@@ -45,6 +45,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # src/generated/ ist gitignored – ohne Client fehlen die Prisma-Typen
+      - name: Generate Prisma Client
+        run: pnpm prisma generate
+
       - name: Lint
         run: pnpm lint
 

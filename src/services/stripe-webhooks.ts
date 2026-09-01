@@ -35,6 +35,7 @@ import {
   PAYMENT_FAILED_VERSION,
   PaymentFailedMail,
 } from "@/src/email/templates/payment-failed-mail.v1";
+import { markRefundByProviderRef } from "@/src/db/refunds";
 import { createInvoiceForOrder } from "./invoices";
 import { readInvoicePdf } from "./storage";
 import { getStripe } from "./stripe";
@@ -337,11 +338,26 @@ export async function processStripeEvent(event: {
       return handlePaymentSucceeded(event.data.object as Stripe.PaymentIntent);
     case "payment_intent.payment_failed":
       return handlePaymentFailed(event.data.object as Stripe.PaymentIntent);
-    case "charge.refunded":
+    case "charge.refunded": {
+      // Ticket 3.3: von uns ausgelöste Refunds als SUCCEEDED bestätigen.
+      // Unbekannte Referenzen (z. B. direkt im Stripe-Dashboard erstattet)
+      // bleiben nur protokolliert – Gutschrift dann manuell über das Admin.
+      const charge = event.data.object as Stripe.Charge;
+      const refunds = charge.refunds?.data ?? [];
+      let confirmed = 0;
+      for (const refund of refunds) {
+        const res = await markRefundByProviderRef(refund.id, "SUCCEEDED");
+        confirmed += res.count;
+      }
+      return {
+        handled: true,
+        note: `${confirmed}/${refunds.length} Refunds bestätigt`,
+      };
+    }
     case "charge.dispute.created":
-      // Erstattungen/Disputes verarbeitet das Rechnungsmodul (Ticket 3.3);
-      // bis dahin nur protokolliert (Event liegt in WebhookEvent).
-      return { handled: true, note: "aufgezeichnet, Verarbeitung ab Ticket 3.3" };
+      // Disputes: vorerst nur protokolliert (Payment DISPUTED + Prozess folgt
+      // mit dem Backoffice-Ausbau).
+      return { handled: true, note: "Dispute aufgezeichnet" };
     default:
       return { handled: true, note: `ignoriert (${event.type})` };
   }

@@ -336,7 +336,13 @@ export async function cancelFulfillmentTx(orderId: string, reason: string) {
 
 export function transitionOrder(
   orderId: string,
-  from: readonly ("DRAFT" | "AWAITING_PAYMENT" | "PROCESSING" | "PAID")[],
+  from: readonly (
+    | "DRAFT"
+    | "AWAITING_PAYMENT"
+    | "PROCESSING"
+    | "PAID"
+    | "PARTIALLY_REFUNDED"
+  )[],
   data: Prisma.OrderUpdateManyMutationInput,
 ) {
   return prisma.order.updateMany({

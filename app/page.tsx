@@ -16,8 +16,11 @@ export default async function HomePage() {
         {shop ? ` für die ${shop.season.name}` : ""}.
       </p>
       <div className="flex flex-wrap items-center justify-center gap-3">
-        <Link href="/vorverkauf" className={buttonVariants()}>
-          Zum Dauerplatz-Vorverkauf
+        <Link href="/kalender" className={buttonVariants()}>
+          Platz buchen
+        </Link>
+        <Link href="/vorverkauf" className={buttonVariants({ variant: "outline" })}>
+          Dauerplatz-Vorverkauf
         </Link>
         <Link href="/konto" className={buttonVariants({ variant: "outline" })}>
           Mein Konto

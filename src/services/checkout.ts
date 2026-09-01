@@ -1,5 +1,8 @@
 import { getOrganisationSettings } from "@/src/db/organisations";
-import { setStripeCheckoutSession } from "@/src/db/orders";
+import {
+  findEarliestBookingStart,
+  setStripeCheckoutSession,
+} from "@/src/db/orders";
 import { createRepositories } from "@/src/db/repositories";
 import { findStripeCustomer, setStripeCustomerId } from "@/src/db/users";
 import type { TenantContext } from "@/src/db/tenant";
@@ -41,10 +44,16 @@ export async function startStripeCheckout(
   }
 
   const settings = await getOrganisationSettings(ctx.organisationId);
-  const paymentMethodTypes: ("card" | "sepa_debit" | "paypal")[] = [
-    "card",
-    "sepa_debit",
-  ];
+  const paymentMethodTypes: ("card" | "sepa_debit" | "paypal")[] = ["card"];
+
+  // D7: SEPA nur, wenn genug Vorlauf bis zum ersten Termin bleibt –
+  // sonst käme die Rücklastschrift erst nach dem Spieltermin.
+  const venue = await repos.venues.findById(order.venueId);
+  const earliestStart = await findEarliestBookingStart(order.id);
+  const sepaLeadMs = (venue?.sepaLeadDays ?? 5) * 24 * 60 * 60 * 1000;
+  const sepaAllowed =
+    !earliestStart || earliestStart.getTime() >= Date.now() + sepaLeadMs;
+  if (sepaAllowed) paymentMethodTypes.push("sepa_debit");
   if (settings.paypalEnabled) paymentMethodTypes.push("paypal");
 
   const session = await stripe.checkout.sessions.create({

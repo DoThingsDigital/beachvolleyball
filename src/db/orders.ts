@@ -145,6 +145,17 @@ export async function createSubscriptionOrderTx(
   });
 }
 
+/** Frühester Terminbeginn der Bestellung (für die sepaLeadDays-Regel, D7). */
+export async function findEarliestBookingStart(
+  orderId: string,
+): Promise<Date | null> {
+  const result = await prisma.booking.aggregate({
+    where: { orderItem: { orderId } },
+    _min: { startAt: true },
+  });
+  return result._min.startAt;
+}
+
 export function setStripeCheckoutSession(
   ctx: TenantContext,
   orderId: string,
@@ -153,6 +164,88 @@ export function setStripeCheckoutSession(
   return prisma.order.updateMany({
     where: { id: orderId, organisationId: ctx.organisationId },
     data: { stripeCheckoutSessionId: sessionId },
+  });
+}
+
+// --- Einzelbuchung (Ticket 4.3, D3) ----------------------------------------
+
+export type SingleBookingOrderInput = {
+  userId: string;
+  venueId: string;
+  legalEntityId: string;
+  courtId: string;
+  startAt: Date;
+  endAt: Date;
+  currency: string;
+  termsVersion: string;
+  holdMinutes: number;
+  description: string;
+  taxRateBp: number;
+  netCents: number;
+  taxCents: number;
+  grossCents: number;
+  priceBreakdown: Prisma.InputJsonValue;
+  billingSnapshot: Prisma.InputJsonValue;
+};
+
+export async function createSingleBookingOrderTx(
+  ctx: TenantContext,
+  input: SingleBookingOrderInput,
+) {
+  const { organisationId } = ctx;
+  const holdExpiresAt = new Date(Date.now() + input.holdMinutes * 60_000);
+
+  return prisma.$transaction(async (tx) => {
+    const order = await tx.order.create({
+      data: {
+        organisationId,
+        venueId: input.venueId,
+        userId: input.userId,
+        legalEntityId: input.legalEntityId,
+        number: orderNumber(),
+        status: "AWAITING_PAYMENT",
+        currency: input.currency,
+        subtotalCents: input.netCents,
+        taxCents: input.taxCents,
+        totalCents: input.grossCents,
+        billingSnapshot: input.billingSnapshot,
+        termsVersion: input.termsVersion,
+      },
+    });
+    const item = await tx.orderItem.create({
+      data: {
+        orderId: order.id,
+        productType: "SINGLE_BOOKING",
+        description: input.description,
+        servicePeriodFrom: input.startAt,
+        servicePeriodTo: input.endAt,
+        quantity: 1,
+        unitCents: input.grossCents,
+        taxRateBp: input.taxRateBp,
+        netCents: input.netCents,
+        taxCents: input.taxCents,
+        grossCents: input.grossCents,
+        priceBreakdown: input.priceBreakdown,
+      },
+    });
+    await tx.booking.create({
+      data: {
+        organisationId,
+        venueId: input.venueId,
+        courtId: input.courtId,
+        startAt: input.startAt,
+        endAt: input.endAt,
+        kind: "CUSTOMER",
+        status: "HOLD",
+        usageType: "KOMMERZIELL",
+        source: "ONLINE",
+        userId: input.userId,
+        orderItemId: item.id,
+        priceCents: input.grossCents,
+        holdExpiresAt,
+      },
+    });
+    return { orderId: order.id, orderNumber: order.number };
   });
 }
 

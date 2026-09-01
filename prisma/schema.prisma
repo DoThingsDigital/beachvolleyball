@@ -520,6 +520,10 @@ model Block {
   rrule              String?
   // überschreibt Venue.releaseHoursBefore
   releaseHoursBefore Int?
+  // E-005: true = Mitglieder-Buchungsfenster (nicht materialisiert; nur
+  // aktive Vereinsmitglieder buchen, individuell bezahlt, usageType VEREIN);
+  // false = Vereinsbetrieb (materialisierte Belegungen, Verein verwaltet)
+  memberSelfBooking  Boolean   @default(false)
   createdByUserId    String
   createdAt          DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt          DateTime  @updatedAt @db.Timestamptz(3)

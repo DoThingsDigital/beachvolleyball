@@ -135,6 +135,50 @@ export function listBlockOccurrences(params: {
   return occurrences;
 }
 
+export type MemberWindowBlock = {
+  courtId: string;
+  startAt: Date;
+  endAt: Date;
+  rrule?: string | null;
+  clubId: string | null;
+  releaseHoursBefore: number | null;
+};
+
+/** Mitglieder-Buchungsfenster (E-005): liefert das Fenster, das den Slot
+ *  überlappt (Teilüberlappung genügt – der Slot gilt dann als Vereins-Slot),
+ *  oder null. Blocks müssen bereits auf memberSelfBooking gefiltert sein. */
+export function findMemberWindowForSlot(params: {
+  blocks: readonly MemberWindowBlock[];
+  timezone: string;
+  courtId: string;
+  startAt: Date;
+  endAt: Date;
+}): { clubId: string | null; releaseHoursBefore: number | null } | null {
+  const { blocks, timezone, courtId, startAt, endAt } = params;
+  const windowFrom = new Date(startAt.getTime() - 24 * 60 * 60 * 1000);
+  const windowTo = new Date(endAt.getTime() + 24 * 60 * 60 * 1000);
+
+  for (const block of blocks) {
+    if (block.courtId !== courtId) continue;
+    const occurrences = listBlockOccurrences({
+      block,
+      timezone,
+      windowFrom,
+      windowTo,
+    });
+    const hit = occurrences.some(
+      (o) => o.startAt.getTime() < endAt.getTime() && startAt.getTime() < o.endAt.getTime(),
+    );
+    if (hit) {
+      return {
+        clubId: block.clubId,
+        releaseHoursBefore: block.releaseHoursBefore,
+      };
+    }
+  }
+  return null;
+}
+
 /** usageType einer materialisierten Sperre (Invariante 10). */
 export function usageTypeForBlockType(
   type: "VEREIN" | "LIGA" | "WARTUNG" | "EVENT" | "GESPERRT",

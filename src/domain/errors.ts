@@ -8,6 +8,7 @@ export type DomainErrorCode =
   | "BILLING_ADDRESS_REQUIRED"
   | "CANCEL_DEADLINE_PASSED"
   | "INSUFFICIENT_CREDIT"
+  | "MEMBERS_ONLY"
   | "NOT_FOUND";
 
 // Fachliche Fehler tragen einen stabilen Code; Stacktraces bleiben serverseitig.

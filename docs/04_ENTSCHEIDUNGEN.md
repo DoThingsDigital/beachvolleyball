@@ -5,6 +5,38 @@ Neueste oben. Format: Kontext → Optionen → Entscheidung → Folgen.
 
 ---
 
+## E-005 · 2026-09-01 · Vereins-Slots als Mitglieder-Buchungsfenster (E5-Variante)
+
+**Kontext.** Ursprüngliches Modell: Vereinskontingent wird als Block
+materialisiert, der Verein verwaltet die Zeiten als Ganzes (bestätigen/
+freigeben/Trainingsgruppe). Der Betreiber will stattdessen: Mitglieder
+buchen und **bezahlen die Vereins-Slots individuell selbst** (Rechnung vom
+Betreiber, Mitgliederpreis); Nicht-Mitglieder können diese Slots gar nicht
+erst auswählen.
+
+**Entscheidung.** Sperren vom Typ VEREIN erhalten einen umschaltbaren
+Modus je Sperre:
+- **Vereinsbetrieb** (bisheriges Verhalten): Termine werden als Belegungen
+  materialisiert, Verein bestätigt/gibt frei/beschriftet.
+- **Mitglieder-Buchungsfenster** (neu, Default für das BC2000-Kontingent):
+  keine Materialisierung; im Fenster dürfen nur aktive Vereinsmitglieder
+  buchen (Einzelbuchung, selbst bezahlt, `usageType = VEREIN`). Ab
+  `releaseHoursBefore` vor Beginn wird ein ungebuchter Slot für alle
+  buchbar (`usageType = KOMMERZIELL`, wie Kontingent-Freigabe).
+
+**Rollenmodell Vereins-Admin** (bestätigt): kein Staff, Kennzeichen auf der
+Vereinsmitgliedschaft; ernennt/entzieht nur der Betreiber. Rechte: Anfragen
+freigeben/ablehnen, Listenimport, Mitgliederliste einsehen; Mail bei neuer
+Anfrage. Mitgliedschaften laufen zum Saisonende ab (`validUntil`); der
+jährliche Neuimport ersetzt das Entfernen einzelner Mitglieder.
+
+**Folgen.** Vereinsnutzungs-Report: Vorhaltung = Fensterstunden (Regel),
+Auslastung = von Mitgliedern gebuchte Stunden (`usageType VEREIN`) – passt
+in die bestehenden vier Quoten. Die /verein-Kontingent-Verwaltung bleibt
+nur für Sperren im Modus Vereinsbetrieb sichtbar.
+
+---
+
 ## E-004 · 2026-09-01 · Guthaben-Verrechnung nur bei voller Deckung (M1, v1)
 
 **Kontext.** Stornos (Kunde, Betreiber, Massenstorno) erzeugen Guthaben im

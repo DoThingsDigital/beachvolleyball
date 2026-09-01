@@ -363,4 +363,49 @@ describe("Mitgliederlisten-Import (4.6)", () => {
     expect(second.activated).toBe(1);
     expect(await isActiveClubMember(ctx(), memberId)).toBe(true);
   });
+
+  it("Saisonende-Gültigkeit: Import setzt validUntil, danach kein Mitglied mehr", async () => {
+    const seasonal = await prisma.user.create({
+      data: { email: "int-test-cm-saison@example.org" },
+    });
+    const seasonEnd = new Date(Date.now() + 30 * 86_400_000);
+
+    await importClubMembers(
+      ctx(),
+      clubId,
+      ["int-test-cm-saison@example.org"],
+      clubAdminId,
+      seasonEnd,
+    );
+    const row = await prisma.clubMembership.findUniqueOrThrow({
+      where: { userId_clubId: { userId: seasonal.id, clubId } },
+    });
+    expect(row.validUntil?.getTime()).toBe(seasonEnd.getTime());
+    expect(await isActiveClubMember(ctx(), seasonal.id)).toBe(true);
+
+    // Saisonende vorbei → Mitgliederpreis-Berechtigung erlischt automatisch
+    await prisma.clubMembership.update({
+      where: { id: row.id },
+      data: { validUntil: new Date(Date.now() - 1000) },
+    });
+    expect(await isActiveClubMember(ctx(), seasonal.id)).toBe(false);
+
+    // Freigabe einer Anfrage setzt validUntil ebenfalls
+    await prisma.clubMembership.update({
+      where: { id: row.id },
+      data: { status: "PENDING", validUntil: null },
+    });
+    await setClubMembershipStatus(
+      ctx(),
+      row.id,
+      clubId,
+      "ACTIVE",
+      clubAdminId,
+      seasonEnd,
+    );
+    const approved = await prisma.clubMembership.findUniqueOrThrow({
+      where: { id: row.id },
+    });
+    expect(approved.validUntil?.getTime()).toBe(seasonEnd.getTime());
+  });
 });

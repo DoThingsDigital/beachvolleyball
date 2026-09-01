@@ -1,14 +1,18 @@
+import { findMemberWindowBlocks } from "@/src/db/blocks";
 import { createRepositories } from "@/src/db/repositories";
 import type { TenantContext } from "@/src/db/tenant";
+import { listBlockOccurrences } from "@/src/domain/block-occurrences";
 import { DomainError } from "@/src/domain/errors";
 import {
   addDays,
   bookingToDayInterval,
   computeDayOccupancy,
+  instantsToDayMinutes,
   isoWeekdayOfDate,
   localDateStart,
   type DayInterval,
   type DaySlot,
+  type MemberWindowInterval,
 } from "@/src/domain/week-occupancy";
 
 // Wochenbelegung für den öffentlichen Kalender (Ticket 4.1, D1).
@@ -68,7 +72,7 @@ export async function getWeekOccupancy(
     localDateStart(addDays(params.startDate, 7), venue.timezone),
   );
 
-  const [courts, bookings] = await Promise.all([
+  const [courts, bookings, memberWindowBlocks] = await Promise.all([
     repos.courts.findManyForVenue(venue.id),
     repos.bookings.findMany({
       venueId: venue.id,
@@ -76,15 +80,43 @@ export async function getWeekOccupancy(
       startAt: { lt: rangeTo },
       endAt: { gt: rangeFrom },
     }),
+    findMemberWindowBlocks(ctx, venue.id),
   ]);
   const courtIds = courts.map((c) => c.id);
   const openingHours = venue.openingHours as Record<string, [string, string][]>;
+
+  // Mitglieder-Buchungsfenster (E-005) für die Woche expandieren
+  const windowOccurrences = memberWindowBlocks.flatMap((block) =>
+    listBlockOccurrences({
+      block,
+      timezone: venue.timezone,
+      windowFrom: rangeFrom,
+      windowTo: rangeTo,
+    }).map((occurrence) => ({
+      courtId: block.courtId,
+      releaseHours: block.releaseHoursBefore ?? venue.releaseHoursBefore,
+      ...occurrence,
+    })),
+  );
 
   const days: DayOccupancy[] = dates.map((date) => {
     const weekday = isoWeekdayOfDate(date);
     const intervals: DayInterval[] = bookings
       .map((b) => bookingToDayInterval(b, date, venue.timezone))
       .filter((i): i is DayInterval => i !== null);
+    const memberWindows: MemberWindowInterval[] = windowOccurrences
+      .map((o) => {
+        const minutes = instantsToDayMinutes(
+          o.startAt,
+          o.endAt,
+          date,
+          venue.timezone,
+        );
+        return minutes
+          ? { courtId: o.courtId, releaseHours: o.releaseHours, ...minutes }
+          : null;
+      })
+      .filter((w): w is MemberWindowInterval => w !== null);
     return {
       date,
       weekday,
@@ -93,6 +125,7 @@ export async function getWeekOccupancy(
         slotMinutes: venue.slotMinutes,
         courtIds,
         intervals,
+        memberWindows,
       }),
     };
   });

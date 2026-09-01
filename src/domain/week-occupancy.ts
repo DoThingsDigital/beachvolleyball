@@ -19,11 +19,22 @@ export type DayInterval = {
   state: Exclude<SlotState, "FREI">;
 };
 
+/** Mitglieder-Buchungsfenster (E-005) als Tagesintervall */
+export type MemberWindowInterval = {
+  courtId: string;
+  startMin: number;
+  endMin: number;
+  /** Freigabefrist in Stunden vor Slot-Beginn */
+  releaseHours: number;
+};
+
 export type DaySlot = {
   /** "18:30" (lokale Zeit) */
   time: string;
   startMin: number;
   states: Record<string, SlotState>;
+  /** courtId → Freigabefrist, wenn der Slot in einem Mitglieder-Fenster liegt */
+  memberWindows: Record<string, number>;
 };
 
 function minToTime(min: number): string {
@@ -37,14 +48,27 @@ export function computeDayOccupancy(params: {
   slotMinutes: number;
   courtIds: readonly string[];
   intervals: readonly DayInterval[];
+  memberWindows?: readonly MemberWindowInterval[];
 }): DaySlot[] {
-  const { openingWindows, slotMinutes, courtIds, intervals } = params;
+  const {
+    openingWindows,
+    slotMinutes,
+    courtIds,
+    intervals,
+    memberWindows = [],
+  } = params;
 
   const byCourt = new Map<string, DayInterval[]>();
   for (const interval of intervals) {
     const list = byCourt.get(interval.courtId);
     if (list) list.push(interval);
     else byCourt.set(interval.courtId, [interval]);
+  }
+  const windowsByCourt = new Map<string, MemberWindowInterval[]>();
+  for (const window of memberWindows) {
+    const list = windowsByCourt.get(window.courtId);
+    if (list) list.push(window);
+    else windowsByCourt.set(window.courtId, [window]);
   }
 
   const slots: DaySlot[] = [];
@@ -57,6 +81,7 @@ export function computeDayOccupancy(params: {
     for (let start = windowStart; start + slotMinutes <= windowEnd; start += slotMinutes) {
       const end = start + slotMinutes;
       const states: Record<string, SlotState> = {};
+      const slotMemberWindows: Record<string, number> = {};
       for (const courtId of courtIds) {
         let state: SlotState = "FREI";
         for (const interval of byCourt.get(courtId) ?? []) {
@@ -70,8 +95,19 @@ export function computeDayOccupancy(params: {
           }
         }
         states[courtId] = state;
+        for (const window of windowsByCourt.get(courtId) ?? []) {
+          if (window.startMin < end && start < window.endMin) {
+            slotMemberWindows[courtId] = window.releaseHours;
+            break;
+          }
+        }
       }
-      slots.push({ time: minToTime(start), startMin: start, states });
+      slots.push({
+        time: minToTime(start),
+        startMin: start,
+        states,
+        memberWindows: slotMemberWindows,
+      });
     }
   }
   return slots;
@@ -87,6 +123,25 @@ export function bookingStateFor(
 ): Exclude<SlotState, "FREI"> {
   if (kind !== "BLOCK") return "BELEGT";
   return usageType === "VEREIN" || usageType === "LIGA" ? "VEREIN" : "GESPERRT";
+}
+
+/** Instant-Paar auf lokale Tagesminuten eines Kalendertags projizieren
+ *  (null, wenn keine Überlappung mit dem Tag). */
+export function instantsToDayMinutes(
+  startAt: Date,
+  endAt: Date,
+  date: string,
+  timezone: string,
+): { startMin: number; endMin: number } | null {
+  const dayStart = localDateStart(date, timezone);
+  const dayEnd = dayStart + 24 * 60 * 60 * 1000;
+  const startMs = Math.max(startAt.getTime(), dayStart);
+  const endMs = Math.min(endAt.getTime(), dayEnd);
+  if (endMs <= startMs) return null;
+  return {
+    startMin: msToLocalMin(startMs, timezone),
+    endMin: endMs === dayEnd ? 24 * 60 : msToLocalMin(endMs, timezone),
+  };
 }
 
 export function bookingToDayInterval(

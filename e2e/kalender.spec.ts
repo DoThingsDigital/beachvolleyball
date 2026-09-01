@@ -93,16 +93,28 @@ test("Kalender zeigt Zustände und Preisvorschau, Buchung erzeugt Hold", async (
   await expect(page.getByTestId("order-status")).toHaveText("Warten auf Zahlung");
 });
 
-test("Vereinskontingent ist im Kalender sichtbar (Mo abends)", async ({
+test("Vereins-Slots (Mitglieder-Fenster) sind im Kalender markiert (Mo abends)", async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== "chromium", "einmal pro Lauf");
 
-  // Montag innerhalb der Saison (Kontingent-Serie startet 01.10.2026);
-  // die Zustandsanzeige hängt nicht am Buchungshorizont
-  await page.goto("/kalender?tag=2026-10-05");
-  const vereinCells = page.getByLabel(/19:00 Vereinskontingent/);
-  await expect(vereinCells.first()).toBeVisible();
+  // Nächster Montag, der sicher in der Kontingent-Serie (ab 01.10.2026)
+  // liegt UND weiter als die Freigabefrist (48 h) entfernt ist – davor
+  // zeigt der Kalender den Slot als für alle frei.
+  const seasonStart = new Date("2026-10-01T00:00:00Z").getTime();
+  const earliest = Math.max(Date.now() + 4 * 86_400_000, seasonStart);
+  const d = new Date(earliest);
+  const monday = new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12),
+  );
+  while (monday.getUTCDay() !== 1) monday.setUTCDate(monday.getUTCDate() + 1);
+  const tag = monday.toISOString().slice(0, 10);
+
+  // Als Gast (nicht eingeloggt): Mitglieder-Slot sichtbar, nicht wählbar
+  await page.goto(`/kalender?tag=${tag}`);
+  await expect(
+    page.getByLabel(/19:00 Vereins-Slot \(nur Mitglieder\)/).first(),
+  ).toBeVisible();
 });
 
 test("Mobil (375 px): Kalender ohne horizontales Scrollen (NF7)", async ({

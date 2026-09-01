@@ -21,28 +21,42 @@ test.beforeAll(async () => {
         [customerEmail],
       );
     }
-    // Kontingent-Drift zurücksetzen: in früheren Läufen freigegebene/
-    // bestätigte Seed-Termine wieder auf unbestätigt CONFIRMED stellen
-    // (nur wo kein anderer aktiver Belegungssatz den Slot besetzt).
-    await pool.query(
-      `UPDATE "Booking" b SET status = 'CONFIRMED', "clubConfirmedAt" = NULL, label = NULL
-       WHERE b."blockId" IN (
-         SELECT id FROM "Block" WHERE title LIKE 'Vereinskontingent %'
-       )
-       AND b.status = 'RELEASED'
-       AND NOT EXISTS (
-         SELECT 1 FROM "Booking" o
-         WHERE o."courtId" = b."courtId" AND o.id <> b.id
-           AND o.status IN ('HOLD','PENDING_PAYMENT','CONFIRMED')
-           AND o."startAt" < b."endAt" AND o."endAt" > b."startAt"
-       )`,
+    // Für den Kontingent-Test (Vereinsbetrieb-Modus) eigene Daten anlegen:
+    // das Seed-Kontingent ist seit E-005 ein Mitglieder-Buchungsfenster
+    // ohne materialisierte Termine. Idempotent über feste IDs.
+    const meta = await pool.query(
+      `SELECT v.id AS venue_id, v."organisationId" AS org_id,
+              c.id AS club_id, co.id AS court_id, u.id AS admin_id
+       FROM "Venue" v
+       JOIN "Club" c ON c."venueId" = v.id
+       JOIN "Court" co ON co."venueId" = v.id AND co.name = 'Feld 4'
+       JOIN "User" u ON u.email = $1
+       WHERE v.slug = 'picco-beach' LIMIT 1`,
+      [adminEmail],
     );
-    await pool.query(
-      `UPDATE "Booking" SET "clubConfirmedAt" = NULL
-       WHERE "blockId" IN (
-         SELECT id FROM "Block" WHERE title LIKE 'Vereinskontingent %'
-       ) AND "clubConfirmedAt" IS NOT NULL`,
-    );
+    const row = meta.rows[0];
+    if (row) {
+      await pool.query(
+        `INSERT INTO "Block" (id, "organisationId", "venueId", "courtId", "clubId", type, title, "startAt", "endAt", rrule, "memberSelfBooking", "createdByUserId", "createdAt", "updatedAt")
+         VALUES ('e2e-betrieb-block', $1, $2, $3, $4, 'VEREIN', 'E2E-Vereinsbetrieb',
+                 now() + interval '7 days', now() + interval '7 days 2 hours', NULL, false, $5, now(), now())
+         ON CONFLICT (id) DO NOTHING`,
+        [row.org_id, row.venue_id, row.court_id, row.club_id, row.admin_id],
+      );
+      // Termine des Betriebs-Blocks frisch aufsetzen (Test ist destruktiv)
+      await pool.query(
+        `DELETE FROM "Booking" WHERE id IN ('e2e-betrieb-b1','e2e-betrieb-b2')`,
+      );
+      // 03:00–04:00 UTC liegt vor der Öffnung – kollidiert nie mit
+      // regulären Buchungen anderer Specs (Exclusion-Constraint)
+      await pool.query(
+        `INSERT INTO "Booking" (id, "organisationId", "venueId", "courtId", "blockId", "clubId", "startAt", "endAt", kind, status, "usageType", source, "confirmedAt", "createdAt", "updatedAt")
+         VALUES
+           ('e2e-betrieb-b1', $1, $2, $3, 'e2e-betrieb-block', $4, date_trunc('day', now()) + interval '10 days 3 hours', date_trunc('day', now()) + interval '10 days 4 hours', 'BLOCK', 'CONFIRMED', 'VEREIN', 'BLOCK', now(), now(), now()),
+           ('e2e-betrieb-b2', $1, $2, $3, 'e2e-betrieb-block', $4, date_trunc('day', now()) + interval '11 days 3 hours', date_trunc('day', now()) + interval '11 days 4 hours', 'BLOCK', 'CONFIRMED', 'VEREIN', 'BLOCK', now(), now(), now())`,
+        [row.org_id, row.venue_id, row.court_id, row.club_id],
+      );
+    }
   } finally {
     await pool.end();
   }

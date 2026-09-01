@@ -56,15 +56,18 @@ test("Manuelle Belegung anlegen, Panel öffnen, stornieren", async ({
   ).toBeVisible();
 });
 
-test("Wochenansicht je Platz rendert", async ({ page }, testInfo) => {
+test("Wochenansicht je Platz rendert mit Mitglieder-Fenster", async ({
+  page,
+}, testInfo) => {
   test.skip(testInfo.project.name !== "chromium", "einmal pro Lauf");
 
   await login(page);
   await page.goto(`/admin/kalender?tag=${DATE}`);
   await page.getByRole("link", { name: "Feld 1", exact: true }).click();
   await expect(page.getByText(/Feld 1 · Woche ab/)).toBeVisible();
-  // Kontingent-Belegungen (Mo–Do abends) sind in der Wochenansicht sichtbar
+  // Das Kontingent ist seit E-005 ein Mitglieder-Buchungsfenster: die
+  // Abendzellen (Mo–Do 18–22) sind frei, aber als Vereinszeit markiert
   await expect(
-    page.getByLabel(/18:00: Vereinskontingent Feld 1/).first(),
+    page.getByLabel(/18:00 frei – Belegung anlegen \(Mitglieder-Fenster\)/).first(),
   ).toBeVisible();
 });

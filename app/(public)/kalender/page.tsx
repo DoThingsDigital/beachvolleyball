@@ -147,6 +147,7 @@ export default async function KalenderPage({
         time: selectedTime,
         durationMin,
         isMember,
+        userId: session?.user?.id ?? null,
       });
       quote = {
         grossCents: result.grossCents,
@@ -239,7 +240,13 @@ export default async function KalenderPage({
                   const state = slot.states[court.id] ?? "FREI";
                   const isSelected =
                     slot.time === selectedTime && court.id === selectedCourtId;
-                  if (state === "FREI" && bookable) {
+                  // Mitglieder-Buchungsfenster (E-005): vor der Freigabe-
+                  // frist nur für Mitglieder auswählbar
+                  const windowReleaseHours = slot.memberWindows[court.id];
+                  const membersOnly =
+                    windowReleaseHours !== undefined &&
+                    now < slotStartMs - windowReleaseHours * 3_600_000;
+                  if (state === "FREI" && bookable && (!membersOnly || isMember)) {
                     return (
                       <td key={court.id} className="p-0.5">
                         <Link
@@ -248,16 +255,33 @@ export default async function KalenderPage({
                             zeit: slot.time,
                             platz: court.id,
                           })}
-                          aria-label={`${court.name} ${slot.time} frei`}
+                          aria-label={
+                            `${court.name} ${slot.time} frei` +
+                            (membersOnly ? " (Mitglieder-Slot)" : "")
+                          }
                           className={
                             "block rounded p-1.5 " +
                             (isSelected
                               ? "bg-primary text-primary-foreground"
-                              : STATE_STYLES.FREI)
+                              : membersOnly
+                                ? "bg-ice/45 border-ice-deep/40 hover:border-primary border"
+                                : STATE_STYLES.FREI)
                           }
                         >
                           {isSelected ? "✓" : ""}
                         </Link>
+                      </td>
+                    );
+                  }
+                  if (state === "FREI" && membersOnly) {
+                    return (
+                      <td key={court.id} className="p-0.5">
+                        <span
+                          aria-label={`${court.name} ${slot.time} Vereins-Slot (nur Mitglieder)`}
+                          className="bg-ice/45 text-ice-deep block rounded p-1.5 text-xs"
+                        >
+                          M
+                        </span>
                       </td>
                     );
                   }
@@ -286,7 +310,11 @@ export default async function KalenderPage({
       <p className="text-muted-foreground text-xs">
         <span className="bg-card rounded border px-1.5">frei</span> ·{" "}
         <span className="bg-booked text-stone rounded px-1.5">belegt</span> ·{" "}
-        <span className="bg-ice/45 text-ice-deep rounded px-1.5">Verein</span> ·{" "}
+        <span className="bg-ice/45 text-ice-deep rounded px-1.5">
+          M = Mitglieder-Slot
+        </span>{" "}
+        (für Vereinsmitglieder buchbar, wird {venue.releaseHoursBefore} Std.
+        vor Beginn für alle frei) ·{" "}
         <span className="bg-booked text-stone rounded px-1.5 line-through">
           gesperrt
         </span>{" "}

@@ -47,15 +47,18 @@ export async function requestClubMembership(
 }
 
 /** Mitgliederpreis-Berechtigung: aktive Mitgliedschaft in einem Verein des
- *  Mandanten, nicht abgelaufen (A4). */
+ *  Mandanten, nicht abgelaufen (A4). Mit clubId: Mitgliedschaft genau in
+ *  diesem Verein (Mitglieder-Buchungsfenster, E-005). */
 export async function isActiveClubMember(
   ctx: TenantContext,
   userId: string,
+  clubId?: string,
 ): Promise<boolean> {
   const membership = await prisma.clubMembership.findFirst({
     where: {
       organisationId: ctx.organisationId,
       userId,
+      ...(clubId ? { clubId } : {}),
       status: "ACTIVE",
       OR: [{ validUntil: null }, { validUntil: { gte: new Date() } }],
     },
@@ -94,10 +97,16 @@ export async function setClubMembershipStatus(
   clubId: string,
   status: "ACTIVE" | "REJECTED",
   verifiedByUserId: string,
+  /** Freigaben gelten bis zum Saisonende (E-005); null = unbefristet */
+  validUntil: Date | null = null,
 ): Promise<boolean> {
   const result = await prisma.clubMembership.updateMany({
     where: { id: membershipId, clubId, organisationId: ctx.organisationId },
-    data: { status, verifiedByUserId },
+    data: {
+      status,
+      verifiedByUserId,
+      ...(status === "ACTIVE" ? { validUntil } : {}),
+    },
   });
   return result.count > 0;
 }
@@ -147,6 +156,13 @@ export async function revokeClubAdmin(
   return res.count > 0;
 }
 
+export function findClubBasics(ctx: TenantContext, clubId: string) {
+  return prisma.club.findFirst({
+    where: { id: clubId, organisationId: ctx.organisationId },
+    select: { id: true, name: true, contactEmail: true },
+  });
+}
+
 export function findClubAdmins(ctx: TenantContext, clubId: string) {
   return prisma.clubMembership.findMany({
     where: {
@@ -167,6 +183,8 @@ export async function importClubMembers(
   clubId: string,
   emails: string[],
   verifiedByUserId: string,
+  /** Import gilt bis zum Saisonende (E-005); null = unbefristet */
+  validUntil: Date | null = null,
 ): Promise<{ activated: number; unknown: string[] }> {
   const users = await prisma.user.findMany({
     where: { email: { in: emails } },
@@ -184,13 +202,14 @@ export async function importClubMembers(
     }
     await prisma.clubMembership.upsert({
       where: { userId_clubId: { userId, clubId } },
-      update: { status: "ACTIVE", verifiedByUserId },
+      update: { status: "ACTIVE", verifiedByUserId, validUntil },
       create: {
         organisationId: ctx.organisationId,
         userId,
         clubId,
         status: "ACTIVE",
         verifiedByUserId,
+        validUntil,
       },
     });
     activated += 1;

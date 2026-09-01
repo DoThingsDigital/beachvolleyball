@@ -86,6 +86,31 @@ export async function setQuotaBookingLabel(
   return res.count > 0;
 }
 
+/** Mitglieder-Buchungen in den Fenstern des Vereins (E-005): der
+ *  Vereins-Admin sieht, wer wann spielt. */
+export function findMemberWindowBookings(ctx: TenantContext, clubId: string) {
+  return prisma.booking.findMany({
+    where: {
+      organisationId: ctx.organisationId,
+      clubId,
+      kind: "CUSTOMER",
+      usageType: "VEREIN",
+      status: { in: ["HOLD", "PENDING_PAYMENT", "CONFIRMED"] },
+      startAt: { gte: new Date() },
+    },
+    select: {
+      id: true,
+      startAt: true,
+      endAt: true,
+      status: true,
+      user: { select: { name: true, email: true } },
+      court: { select: { name: true } },
+    },
+    orderBy: { startAt: "asc" },
+    take: 60,
+  });
+}
+
 /** Freigegebenen Slot finden, den eine neue Buchung weiterverkauft (E3):
  *  gleiche Platzzeit-Überlappung mit einer RELEASED-Kontingent-Belegung. */
 export function findReleasedQuotaForSlot(

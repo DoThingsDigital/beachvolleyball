@@ -1,6 +1,7 @@
 import { TZDate } from "@date-fns/tz";
 
 import { formatDate, formatWeekday } from "@/lib/format";
+import { findMemberWindowBlocks } from "@/src/db/blocks";
 import { isActiveClubMember } from "@/src/db/club-memberships";
 import { findReleasedQuotaForSlot } from "@/src/db/club-quota";
 import {
@@ -10,6 +11,7 @@ import {
 import { createRepositories } from "@/src/db/repositories";
 import { findProfile } from "@/src/db/users";
 import type { TenantContext } from "@/src/db/tenant";
+import { findMemberWindowForSlot } from "@/src/domain/block-occurrences";
 import { DomainError } from "@/src/domain/errors";
 import { computePrice, splitGross } from "@/src/domain/pricing";
 import { isoWeekdayOfDate } from "@/src/domain/week-occupancy";
@@ -45,6 +47,9 @@ export type SingleBookingQuote = {
     rateCents: number;
     slotCents: number;
   }[];
+  /** E-005: Buchung im Mitglieder-Fenster vor der Freigabefrist */
+  usageType: "KOMMERZIELL" | "VEREIN";
+  windowClubId: string | null;
 };
 
 export async function getSingleBookingQuote(
@@ -58,6 +63,8 @@ export async function getSingleBookingQuote(
     time: string;
     durationMin: number;
     isMember: boolean;
+    /** für den Fenster-Check (E-005): Mitgliedschaft im Fenster-Verein */
+    userId?: string | null;
     now?: Date;
   },
 ): Promise<SingleBookingQuote> {
@@ -137,6 +144,45 @@ export async function getSingleBookingQuote(
     throw new DomainError("SEASON_NOT_BOOKABLE", "Für diesen Termin ist keine Buchung möglich.");
   }
 
+  // Mitglieder-Buchungsfenster (E-005): vor der Freigabefrist dürfen nur
+  // aktive Mitglieder des Fenster-Vereins buchen (usageType VEREIN, zählt
+  // im Vereinsnutzungs-Report als Auslastung); danach ist der Slot für
+  // alle frei (KOMMERZIELL, wie eine Kontingent-Freigabe).
+  let usageType: "KOMMERZIELL" | "VEREIN" = "KOMMERZIELL";
+  let windowClubId: string | null = null;
+  const memberWindows = await findMemberWindowBlocks(ctx, venue.id);
+  if (memberWindows.length > 0) {
+    const window = findMemberWindowForSlot({
+      blocks: memberWindows,
+      timezone: venue.timezone,
+      courtId: court.id,
+      startAt,
+      endAt,
+    });
+    if (window) {
+      const releaseHours =
+        window.releaseHoursBefore ?? venue.releaseHoursBefore;
+      const releaseAtMs = startAt.getTime() - releaseHours * 3_600_000;
+      if (now.getTime() < releaseAtMs) {
+        const isWindowMember = params.userId
+          ? await isActiveClubMember(
+              ctx,
+              params.userId,
+              window.clubId ?? undefined,
+            )
+          : false;
+        if (!isWindowMember) {
+          throw new DomainError(
+            "MEMBERS_ONLY",
+            `Dieser Slot ist bis ${releaseHours} Stunden vor Beginn Vereinsmitgliedern vorbehalten.`,
+          );
+        }
+        usageType = "VEREIN";
+        windowClubId = window.clubId;
+      }
+    }
+  }
+
   const rules = await repos.priceRules.findManyForSeason(season.id);
   const price = computePrice({
     slotMinutes: venue.slotMinutes,
@@ -175,6 +221,8 @@ export async function getSingleBookingQuote(
     courtName: court.name,
     memberRateApplied: price.memberRateApplied,
     breakdown: price.breakdown,
+    usageType,
+    windowClubId,
   };
 }
 
@@ -191,7 +239,11 @@ export async function createSingleBookingOrder(
 ): Promise<{ orderId: string; orderNumber: string }> {
   // A4: Mitgliederpreis nur bei aktiver Vereinsmitgliedschaft
   const isMember = await isActiveClubMember(ctx, params.userId);
-  const quote = await getSingleBookingQuote(ctx, { ...params, isMember });
+  const quote = await getSingleBookingQuote(ctx, {
+    ...params,
+    isMember,
+    userId: params.userId,
+  });
 
   const profile = await findProfile(params.userId);
   if (
@@ -227,6 +279,8 @@ export async function createSingleBookingOrder(
       note: releasedQuota
         ? `Weiterverkauf aus Kontingent-Freigabe ${releasedQuota.id}`
         : null,
+      usageType: quote.usageType,
+      clubId: quote.windowClubId,
       currency: quote.currency,
       termsVersion: quote.termsVersion,
       holdMinutes: quote.holdMinutes,

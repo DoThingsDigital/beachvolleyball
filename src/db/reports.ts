@@ -32,17 +32,20 @@ export async function usageFieldHours(
     }[]
   >`
     WITH b AS (
-      SELECT "usageType", "status",
+      SELECT "usageType", "status", kind,
              SUM(EXTRACT(EPOCH FROM ("endAt" - "startAt")) / 3600.0) AS feldstunden
       FROM "Booking"
       WHERE "organisationId" = ${ctx.organisationId}
         AND "venueId" = ${params.venueId}
         AND "startAt" >= ${params.from} AND "startAt" < ${params.to}
         AND "status" IN ('CONFIRMED','RELEASED','NO_SHOW')
-      GROUP BY 1, 2
+      GROUP BY 1, 2, 3
     )
     SELECT
-      SUM(feldstunden) FILTER (WHERE "usageType" IN ('VEREIN','LIGA'))                             AS verein_vorhaltung,
+      -- Vorhaltung nur aus materialisierten Sperren (kind BLOCK):
+      -- Mitglieder-Fensterbuchungen (kind CUSTOMER, usageType VEREIN)
+      -- stecken bereits in den Fensterstunden (E-005, App-seitig addiert)
+      SUM(feldstunden) FILTER (WHERE "usageType" IN ('VEREIN','LIGA') AND kind = 'BLOCK')          AS verein_vorhaltung,
       SUM(feldstunden) FILTER (WHERE "usageType" IN ('VEREIN','LIGA') AND "status" <> 'RELEASED')  AS verein_auslastung,
       SUM(feldstunden) FILTER (WHERE "usageType" = 'KOMMERZIELL' AND "status" <> 'RELEASED')       AS kommerziell,
       SUM(feldstunden) FILTER (WHERE "usageType" = 'INTERN' AND "status" <> 'RELEASED')            AS intern,

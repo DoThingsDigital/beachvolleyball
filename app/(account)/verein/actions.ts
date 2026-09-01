@@ -29,7 +29,12 @@ async function requireClubAdmin(clubId: string) {
   if (!shop) return null;
   const clubs = await findClubsIAdminister(shop.ctx, session.user.id);
   if (!clubs.some((c) => c.id === clubId)) return null;
-  return { ctx: shop.ctx, userId: session.user.id };
+  return {
+    ctx: shop.ctx,
+    userId: session.user.id,
+    // Freigaben/Importe gelten bis zum Saisonende (E-005)
+    seasonEnd: shop.season.endDate,
+  };
 }
 
 const decideSchema = z.object({
@@ -58,6 +63,7 @@ export async function decideMembership(
     parsed.data.clubId,
     parsed.data.decision,
     admin.userId,
+    admin.seasonEnd,
   );
   if (!ok) return { error: "Anfrage nicht gefunden." };
   revalidatePath("/verein");
@@ -107,6 +113,7 @@ export async function importMembers(
     parsed.data.clubId,
     emails,
     admin.userId,
+    admin.seasonEnd,
   );
   revalidatePath("/verein");
   return {

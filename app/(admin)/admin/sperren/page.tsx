@@ -98,6 +98,7 @@ export default async function SperrenPage() {
                 timeTo,
                 weekdays,
                 untilDate,
+                memberSelfBooking: block.memberSelfBooking,
               };
               const futureCount = futureCounts.get(block.id) ?? 0;
               return (
@@ -112,8 +113,10 @@ export default async function SperrenPage() {
                           ? `${weekdays.map((w) => WEEKDAY_SHORT[w - 1]).join(", ")} ${timeFrom}–${timeTo}` +
                             (untilDate ? ` bis ${untilDate}` : "")
                           : `${date} ${timeFrom}–${timeTo}`}
-                        {block.club ? ` · ${block.club.name}` : ""} ·{" "}
-                        {futureCount} zukünftige Termine
+                        {block.club ? ` · ${block.club.name}` : ""}
+                        {block.memberSelfBooking
+                          ? " · Mitglieder-Buchungsfenster"
+                          : ` · ${futureCount} zukünftige Termine`}
                       </span>
                     </p>
                     <EndBlockButton blockId={block.id} />

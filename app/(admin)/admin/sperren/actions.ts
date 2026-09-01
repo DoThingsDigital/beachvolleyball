@@ -31,6 +31,7 @@ const blockSchema = z.object({
     .string()
     .transform((v) => (v === "" ? null : v))
     .nullable(),
+  memberSelfBooking: z.boolean(),
 });
 
 function parse(formData: FormData) {
@@ -45,10 +46,23 @@ function parse(formData: FormData) {
     timeTo: formData.get("timeTo"),
     weekdays: formData.getAll("weekdays"),
     untilDate: formData.get("untilDate") ?? "",
+    memberSelfBooking: formData.get("memberSelfBooking") === "on",
   });
 }
 
-function summarize(result: MaterializeResult): string {
+function summarize(
+  result: MaterializeResult,
+  memberSelfBooking: boolean,
+): string {
+  if (memberSelfBooking) {
+    return (
+      "Gespeichert – Mitglieder-Buchungsfenster aktiv" +
+      (result.cancelled > 0
+        ? ` (${result.cancelled} zuvor materialisierte Termine storniert)`
+        : "") +
+      "."
+    );
+  }
   const parts = [`${result.created + result.kept} Termine aktiv`];
   if (result.created > 0) parts.push(`${result.created} neu`);
   if (result.cancelled > 0) parts.push(`${result.cancelled} storniert`);
@@ -76,7 +90,7 @@ export async function createBlockAction(
       staff.userId,
     );
     revalidatePath("/admin/sperren");
-    return { ok: summarize(materialized) };
+    return { ok: summarize(materialized, parsed.data.memberSelfBooking) };
   } catch (error) {
     if (error instanceof DomainError) return { error: error.message };
     throw error;
@@ -105,7 +119,7 @@ export async function updateBlockAction(
       staff.userId,
     );
     revalidatePath("/admin/sperren");
-    return { ok: summarize(materialized) };
+    return { ok: summarize(materialized, parsed.data.memberSelfBooking) };
   } catch (error) {
     if (error instanceof DomainError) return { error: error.message };
     throw error;

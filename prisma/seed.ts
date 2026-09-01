@@ -268,9 +268,18 @@ async function main() {
           startAt: new Date("2026-10-01T18:00:00+02:00"),
           endAt: new Date("2026-10-01T22:00:00+02:00"),
           rrule: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH;UNTIL=20270331T215959Z",
+          // E-005: Mitglieder buchen die Vereins-Slots individuell selbst
+          memberSelfBooking: true,
           createdByUserId: admin.id,
         },
       });
+      if (!block.memberSelfBooking) {
+        // Bestehende Seeds auf das Fenster-Modell heben (E-005)
+        block = await prisma.block.update({
+          where: { id: block.id },
+          data: { memberSelfBooking: true },
+        });
+      }
       kontingentBlockIds.push(block.id);
     }
 
@@ -283,9 +292,16 @@ async function main() {
         blockId,
         { actorUserId: admin.id },
       );
-      if (result.created > 0 || result.skippedConflicts.length > 0) {
+      if (
+        result.created > 0 ||
+        result.cancelled > 0 ||
+        result.skippedConflicts.length > 0
+      ) {
         console.log(
           `Kontingent ${blockId}: ${result.created} Termine materialisiert` +
+            (result.cancelled > 0
+              ? `, ${result.cancelled} storniert (Fenster-Modell)`
+              : "") +
             (result.skippedConflicts.length > 0
               ? `, ${result.skippedConflicts.length} Konflikte übersprungen`
               : ""),

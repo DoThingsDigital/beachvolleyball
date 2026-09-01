@@ -201,6 +201,9 @@ export type SingleBookingOrderInput = {
   /** Weiterverkauf eines freigegebenen Kontingent-Slots (E3) */
   source?: "ONLINE" | "RELEASE_RESALE";
   note?: string | null;
+  /** E-005: Mitglieder-Fenster-Buchungen zählen als Vereinsnutzung */
+  usageType?: "KOMMERZIELL" | "VEREIN";
+  clubId?: string | null;
 };
 
 export async function createSingleBookingOrderTx(
@@ -252,7 +255,8 @@ export async function createSingleBookingOrderTx(
         endAt: input.endAt,
         kind: "CUSTOMER",
         status: "HOLD",
-        usageType: "KOMMERZIELL",
+        usageType: input.usageType ?? "KOMMERZIELL",
+        clubId: input.clubId ?? null,
         source: input.source ?? "ONLINE",
         note: input.note ?? null,
         userId: input.userId,

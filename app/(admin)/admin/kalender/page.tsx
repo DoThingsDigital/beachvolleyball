@@ -4,9 +4,12 @@ import Link from "next/link";
 import { formatCents, formatDateTime, formatWeekday } from "@/lib/format";
 import { requireStaff } from "@/src/auth/guards";
 import { findBookingsForAdminCalendar } from "@/src/db/admin-calendar";
+import { findMemberWindowBlocks } from "@/src/db/blocks";
 import { createRepositories } from "@/src/db/repositories";
+import { listBlockOccurrences } from "@/src/domain/block-occurrences";
 import {
   addDays,
+  instantsToDayMinutes,
   isoWeekdayOfDate,
   localDateStart,
 } from "@/src/domain/week-occupancy";
@@ -118,6 +121,8 @@ export default async function AdminKalenderPage({
     to: rangeTo,
   });
 
+  const memberWindowBlocks = await findMemberWindowBlocks(staff.ctx, venue.id);
+
   const openingHours = venue.openingHours as Record<string, [string, string][]>;
 
   // Slot-Raster: gemeinsame Spanne über alle angezeigten Tage
@@ -140,6 +145,33 @@ export default async function AdminKalenderPage({
   const times: number[] = [];
   for (let t = gridStart; t + slotMinutes <= gridEnd; t += slotMinutes) {
     times.push(t);
+  }
+
+  // Mitglieder-Buchungsfenster (E-005) sichtbar machen: die Slots sind
+  // physisch frei, aber der Betreiber soll die Vereinszeit erkennen.
+  const windowCells = new Set<string>();
+  for (const block of memberWindowBlocks) {
+    for (const occurrence of listBlockOccurrences({
+      block,
+      timezone: venue.timezone,
+      windowFrom: rangeFrom,
+      windowTo: rangeTo,
+    })) {
+      for (const d of dates) {
+        const minutes = instantsToDayMinutes(
+          occurrence.startAt,
+          occurrence.endAt,
+          d,
+          venue.timezone,
+        );
+        if (!minutes) continue;
+        for (let t = gridStart; t < gridEnd; t += slotMinutes) {
+          if (t < minutes.endMin && minutes.startMin < t + slotMinutes) {
+            windowCells.add(`${d}#${block.courtId}#${t}`);
+          }
+        }
+      }
+    }
   }
 
   // Zellenzuordnung je (Datum, Court, SlotMin)
@@ -294,6 +326,9 @@ export default async function AdminKalenderPage({
                     const slotParam = `${col.courtId}|${minToTime(t)}`;
                     const isSelected =
                       params.slot === slotParam && date === col.date;
+                    const inWindow = windowCells.has(
+                      `${col.date}#${col.courtId}#${t}`,
+                    );
                     return (
                       <td key={col.key} className="p-0.5">
                         <Link
@@ -302,15 +337,20 @@ export default async function AdminKalenderPage({
                             slot: slotParam,
                             belegung: undefined,
                           })}
-                          aria-label={`${col.head} ${minToTime(t)} frei – Belegung anlegen`}
+                          aria-label={
+                            `${col.head} ${minToTime(t)} frei – Belegung anlegen` +
+                            (inWindow ? " (Mitglieder-Fenster)" : "")
+                          }
                           className={
                             "block rounded p-1 " +
                             (isSelected
                               ? "bg-primary text-primary-foreground"
-                              : "bg-card border-border/60 hover:border-primary border")
+                              : inWindow
+                                ? "bg-ice/45 border-ice-deep/40 hover:border-primary border"
+                                : "bg-card border-border/60 hover:border-primary border")
                           }
                         >
-                          {isSelected ? "✓" : ""}
+                          {isSelected ? "✓" : inWindow ? "M" : ""}
                         </Link>
                       </td>
                     );
@@ -415,9 +455,10 @@ export default async function AdminKalenderPage({
       ) : null}
 
       <p className="text-muted-foreground text-xs">
-        frei* = freigegebener Vereins-Slot (kommerziell buchbar) · Klick auf
-        eine freie Zelle legt eine Belegung an, Klick auf eine Belegung öffnet
-        die Aktionen.
+        frei* = freigegebener Vereins-Slot (kommerziell buchbar) · M =
+        Mitglieder-Buchungsfenster (Mitglieder buchen selbst; als Admin kannst
+        du trotzdem manuell belegen) · Klick auf eine freie Zelle legt eine
+        Belegung an, Klick auf eine Belegung öffnet die Aktionen.
       </p>
     </div>
   );

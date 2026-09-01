@@ -44,6 +44,7 @@ export type BlockFormDefaults = {
   timeTo?: string;
   weekdays?: number[];
   untilDate?: string;
+  memberSelfBooking?: boolean;
 };
 
 export function BlockForm({
@@ -130,6 +131,24 @@ export function BlockForm({
               ))}
             </select>
           </div>
+        ) : null}
+
+        {type === "VEREIN" ? (
+          <label className="col-span-2 flex items-start gap-2 text-sm sm:col-span-3 lg:col-span-3">
+            <input
+              type="checkbox"
+              name="memberSelfBooking"
+              defaultChecked={defaults.memberSelfBooking ?? false}
+              className="mt-0.5 size-4"
+            />
+            <span>
+              <strong>Mitglieder-Buchungsfenster:</strong> Mitglieder buchen
+              und bezahlen die Slots selbst (Mitgliederpreis); Nicht-Mitglieder
+              können sie erst ab der Freigabefrist wählen. Ohne Haken:
+              Vereinsbetrieb – die Zeiten werden als Belegungen materialisiert
+              und der Verein verwaltet sie unter /verein.
+            </span>
+          </label>
         ) : null}
 
         <div className="flex flex-col gap-1">

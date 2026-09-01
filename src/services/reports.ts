@@ -2,6 +2,7 @@ import { TZDate } from "@date-fns/tz";
 import { renderToBuffer } from "@react-pdf/renderer";
 
 import { formatDate, formatDateTime } from "@/lib/format";
+import { findMemberWindowBlocks } from "@/src/db/blocks";
 import { createRepositories } from "@/src/db/repositories";
 import {
   fieldHoursByKind,
@@ -13,6 +14,7 @@ import {
   type UsageTotals,
 } from "@/src/db/reports";
 import type { TenantContext } from "@/src/db/tenant";
+import { listBlockOccurrences } from "@/src/domain/block-occurrences";
 import { DomainError } from "@/src/domain/errors";
 
 export type { OccupancyGroupBy } from "@/src/db/reports";
@@ -101,8 +103,9 @@ export type VereinsnutzungReport = {
 
 export const L3_DEFINITIONS = [
   "Feldstunde: 1 Platz × 1 Stunde.",
-  "Vorhaltung: für den Verein vorgehaltene Feldstunden (usageType VEREIN/LIGA), einschließlich fristgerecht freigegebener, aber ungenutzter Slots (Status RELEASED).",
-  "Auslastung: vom Verein tatsächlich in Anspruch genommene Feldstunden (VEREIN/LIGA ohne RELEASED).",
+  "Vorhaltung: für den Verein vorgehaltene Feldstunden – materialisierte Vereins-/Liga-Belegungen (einschließlich fristgerecht freigegebener, Status RELEASED) plus die vollen Stunden der Mitglieder-Buchungsfenster.",
+  "Auslastung: vom Verein tatsächlich in Anspruch genommene Feldstunden – Vereins-/Liga-Belegungen ohne RELEASED, einschließlich individuell bezahlter Mitgliederbuchungen in den Fenstern.",
+  "Mitglieder-Buchungsfenster: Zeiten, in denen bis zur Freigabefrist nur Vereinsmitglieder buchen können; die Buchungen zahlen die Mitglieder selbst.",
   "Verfügbare Feldstunden: Öffnungszeit × aktive Plätze im Zeitraum, abzüglich Schließtage (Basis: aktuelle Konfiguration).",
   "Belegte Feldstunden: alle Belegungen außer freigegebenen (Status CONFIRMED/NO_SHOW).",
   "Eine Belegung zählt zum Kalendertag ihres Beginns.",
@@ -131,6 +134,25 @@ export async function buildVereinsnutzungReport(
     from: period.from,
     to: period.to,
   });
+
+  // Mitglieder-Buchungsfenster (E-005) zählen komplett als Vorhaltung;
+  // die Auslastung kommt aus den tatsächlichen VEREIN-Buchungen darin.
+  const windowBlocks = await findMemberWindowBlocks(ctx, venue.id);
+  const windowHours = windowBlocks.reduce((sum, block) => {
+    return (
+      sum +
+      listBlockOccurrences({
+        block,
+        timezone: venue.timezone,
+        windowFrom: period.from,
+        windowTo: period.to,
+      }).reduce(
+        (h, o) => h + (o.endAt.getTime() - o.startAt.getTime()) / 3_600_000,
+        0,
+      )
+    );
+  }, 0);
+  totals.vereinVorhaltung += windowHours;
 
   const belegtPlusReleased = totals.belegtGesamt + totals.releasedStunden;
   return {

@@ -76,6 +76,26 @@ export async function cancelBlockBookings(
   return res.count;
 }
 
+/** Mitglieder-Buchungsfenster eines Standorts (E-005). */
+export function findMemberWindowBlocks(ctx: TenantContext, venueId: string) {
+  return prisma.block.findMany({
+    where: {
+      organisationId: ctx.organisationId,
+      venueId,
+      type: "VEREIN",
+      memberSelfBooking: true,
+    },
+    select: {
+      courtId: true,
+      startAt: true,
+      endAt: true,
+      rrule: true,
+      clubId: true,
+      releaseHoursBefore: true,
+    },
+  });
+}
+
 /** Anzahl zukünftiger aktiver Termine je Block (Admin-Liste). */
 export async function countFutureBlockBookings(
   ctx: TenantContext,

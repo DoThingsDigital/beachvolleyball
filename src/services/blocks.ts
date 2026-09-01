@@ -64,12 +64,17 @@ export async function materializeBlock(
   if (!window || window.to.getTime() <= now.getTime()) return empty;
 
   const from = new Date(Math.max(window.from.getTime(), now.getTime()));
-  const desired = listBlockOccurrences({
-    block,
-    timezone: venue.timezone,
-    windowFrom: from,
-    windowTo: window.to,
-  });
+  // Mitglieder-Buchungsfenster (E-005) werden nicht materialisiert – die
+  // Slots bleiben physisch frei und die Buchbarkeit regelt der Fenster-
+  // Check. desired = leer räumt beim Umschalten bestehende Termine ab.
+  const desired = block.memberSelfBooking
+    ? []
+    : listBlockOccurrences({
+        block,
+        timezone: venue.timezone,
+        windowFrom: from,
+        windowTo: window.to,
+      });
   const desiredByKey = new Map(
     desired.map((o) => [occurrenceKey(o.startAt, o.endAt), o]),
   );
@@ -146,6 +151,8 @@ export type BlockInput = {
   weekdays?: number[];
   /** "YYYY-MM-DD" (lokal, inklusiv); nur für wiederkehrende Sperren */
   untilDate?: string | null;
+  /** E-005: Mitglieder-Buchungsfenster statt Vereinsbetrieb (nur VEREIN) */
+  memberSelfBooking?: boolean;
 };
 
 function buildRule(
@@ -235,6 +242,7 @@ export async function createBlock(
     startAt: rule.startAt,
     endAt: rule.endAt,
     rrule: rule.rrule,
+    memberSelfBooking: input.type === "VEREIN" && (input.memberSelfBooking ?? false),
     createdByUserId: actorUserId,
   });
   await repos.auditLogs.create({
@@ -287,6 +295,7 @@ export async function updateBlock(
     startAt: rule.startAt,
     endAt: rule.endAt,
     rrule: rule.rrule,
+    memberSelfBooking: input.type === "VEREIN" && (input.memberSelfBooking ?? false),
   });
   if (!ok) throw new DomainError("NOT_FOUND", "Sperre nicht gefunden.");
   await repos.auditLogs.create({

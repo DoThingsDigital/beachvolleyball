@@ -7,7 +7,10 @@ import {
   findClubMembers,
   findClubsIAdminister,
 } from "@/src/db/club-memberships";
-import { findUpcomingQuotaBookings } from "@/src/db/club-quota";
+import {
+  findMemberWindowBookings,
+  findUpcomingQuotaBookings,
+} from "@/src/db/club-quota";
 import { getPublicShopContext } from "@/src/services/public-context";
 
 import { DecideButtons, ImportForm } from "./club-admin-forms";
@@ -70,6 +73,7 @@ export default async function VereinPage() {
           label: b.label ?? "",
         }),
       ),
+      windowBookings: await findMemberWindowBookings(shop.ctx, club.id),
     })),
   );
 
@@ -82,7 +86,7 @@ export default async function VereinPage() {
         </Link>
       </div>
 
-      {clubsWithMembers.map(({ club, members, quota }) => {
+      {clubsWithMembers.map(({ club, members, quota, windowBookings }) => {
         const pending = members.filter((m) => m.status === "PENDING");
         const rest = members.filter((m) => m.status !== "PENDING");
         return (
@@ -90,13 +94,55 @@ export default async function VereinPage() {
             <h2 className="text-lg font-bold">{club.name}</h2>
 
             <div className="flex flex-col gap-2">
-              <h3 className="text-sm font-medium">Kontingent-Termine</h3>
-              <QuotaList
-                clubId={club.id}
-                bookings={quota}
-                releaseHours={shop.venue.releaseHoursBefore}
-              />
+              <h3 className="text-sm font-medium">
+                Mitglieder-Buchungen in den Vereins-Slots
+              </h3>
+              {windowBookings.length === 0 ? (
+                <p className="text-muted-foreground text-sm">
+                  Noch keine kommenden Mitglieder-Buchungen. Mitglieder buchen
+                  die Vereins-Slots selbst im Kalender (Mitgliederpreis);
+                  {" "}{shop.venue.releaseHoursBefore} Stunden vor Beginn werden
+                  ungebuchte Slots für alle freigegeben.
+                </p>
+              ) : (
+                <ul
+                  className="flex flex-col gap-1"
+                  data-testid="window-bookings"
+                >
+                  {windowBookings.map((b) => (
+                    <li
+                      key={b.id}
+                      className="flex items-center justify-between gap-2 rounded-lg border px-3 py-1.5 text-sm"
+                    >
+                      <span>
+                        <span className="font-medium">
+                          {formatDateTime(b.startAt)}
+                        </span>{" "}
+                        <span className="text-muted-foreground text-xs">
+                          · {b.court.name}
+                        </span>
+                      </span>
+                      <span className="text-muted-foreground text-xs">
+                        {b.user?.name ?? b.user?.email ?? "–"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
+
+            {quota.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                <h3 className="text-sm font-medium">
+                  Kontingent-Termine (Vereinsbetrieb)
+                </h3>
+                <QuotaList
+                  clubId={club.id}
+                  bookings={quota}
+                  releaseHours={shop.venue.releaseHoursBefore}
+                />
+              </div>
+            ) : null}
 
             <div className="flex flex-col gap-2">
               <h3 className="text-sm font-medium">

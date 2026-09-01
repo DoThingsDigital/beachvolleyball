@@ -28,8 +28,8 @@ Definition of Done (global): Code gemerged, Tests grün, Migration angewendet, i
 | [x] 1.2 | Seed Winter 1 (Organisation, LegalEntities, Venue, Courts, Season, Club, Vereinskontingent-Block) | 2 | Seed | `pnpm seed` idempotent — **Preise/Rabatt sind Platzhalter** bis Kalkulationstool v2, Adressen TODO, Beach-Liga-Slots nach Abstimmung mit Roland |
 | [x] 1.3 | Admin-Layout (Sidebar, Standort-Switcher, Rollen-Guard) | 3 | K3 | Nur ADMIN/STAFF sehen Admin |
 | [x] 1.4 | Admin: Standort-Konfiguration (Öffnungszeiten, Schließtage, Raster, Fristen, Storno-Regel) | 4 | B2 | Formular mit Zod-Validierung, Audit-Eintrag |
-| [ ] 1.5 | Admin: Plätze, Saisons, Vereine, Aussteller (LegalEntity) CRUD | 4 | B3–B5 | Aussteller-Wechsel am Standort möglich |
-| [ ] 1.6 | Admin: Preisregeln CRUD mit Vorschau „Preis für Slot X" | 3 | C1, C2 | – |
+| [x] 1.5 | Admin: Plätze, Saisons, Vereine, Aussteller (LegalEntity) CRUD | 4 | B3–B5 | Aussteller-Wechsel am Standort möglich |
+| [x] 1.6 | Admin: Preisregeln CRUD mit Vorschau „Preis für Slot X" | 3 | C1, C2 | – |
 | [x] 1.7 | `computePrice()` + Dauerplatz-Kalkulation als reine Funktionen, Unit-Tests (Überlappung, Wochenende, Mitglied, Rabatt, Rundung, Zeitumstellung 25.10.) | 4 | C3, NF2 | ≥ 15 Testfälle — 24 Tests in `src/domain/pricing.test.ts` |
 | [ ] 1.8 | Kundenkonto: Registrierung (Double-Opt-in), Profil, Rechnungsadresse, AGB-Zustimmung mit Version | 4 | A1–A3 | E2E Registrierung |
 | [ ] 1.9 | E-Mail-Provider (EU), React-Email-Templates: Verifizierung, Magic Link, Basis-Layout; `EmailLog` | 1 | J1 | – |

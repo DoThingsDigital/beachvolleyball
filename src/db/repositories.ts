@@ -40,6 +40,19 @@ export function createRepositories(ctx: TenantContext) {
         if (result.count === 0) return null;
         return prisma.venue.findFirst({ where: { id, organisationId } });
       },
+      // Aussteller-Wechsel (B4): wirkt nur auf neue Rechnungen; bestehende
+      // tragen ihren Aussteller-Snapshot.
+      async setLegalEntity(id: string, legalEntityId: string) {
+        const entity = await prisma.legalEntity.findFirst({
+          where: { id: legalEntityId, organisationId },
+        });
+        if (!entity) return false;
+        const res = await prisma.venue.updateMany({
+          where: { id, organisationId },
+          data: { legalEntityId },
+        });
+        return res.count > 0;
+      },
     },
 
     auditLogs: {
@@ -62,6 +75,123 @@ export function createRepositories(ctx: TenantContext) {
           where: { venueId, organisationId, active: true },
           orderBy: { sortOrder: "asc" },
         });
+      },
+      findAllForVenue(venueId: string) {
+        return prisma.court.findMany({
+          where: { venueId, organisationId },
+          orderBy: { sortOrder: "asc" },
+        });
+      },
+      create(data: Omit<Prisma.CourtUncheckedCreateInput, "organisationId">) {
+        return prisma.court.create({ data: { ...data, organisationId } });
+      },
+      async update(
+        id: string,
+        data: Omit<Prisma.CourtUncheckedUpdateInput, "id" | "organisationId" | "venueId">,
+      ) {
+        const res = await prisma.court.updateMany({
+          where: { id, organisationId },
+          data,
+        });
+        return res.count > 0;
+      },
+    },
+
+    seasons: {
+      findManyForVenue(venueId: string) {
+        return prisma.season.findMany({
+          where: { venueId, organisationId },
+          orderBy: { startDate: "desc" },
+        });
+      },
+      create(data: Omit<Prisma.SeasonUncheckedCreateInput, "organisationId">) {
+        return prisma.season.create({ data: { ...data, organisationId } });
+      },
+      async update(
+        id: string,
+        data: Omit<Prisma.SeasonUncheckedUpdateInput, "id" | "organisationId" | "venueId">,
+      ) {
+        const res = await prisma.season.updateMany({
+          where: { id, organisationId },
+          data,
+        });
+        return res.count > 0;
+      },
+    },
+
+    clubs: {
+      findManyForVenue(venueId: string) {
+        return prisma.club.findMany({
+          where: { venueId, organisationId },
+          orderBy: { name: "asc" },
+        });
+      },
+      create(data: Omit<Prisma.ClubUncheckedCreateInput, "organisationId">) {
+        return prisma.club.create({ data: { ...data, organisationId } });
+      },
+      async update(
+        id: string,
+        data: Omit<Prisma.ClubUncheckedUpdateInput, "id" | "organisationId" | "venueId">,
+      ) {
+        const res = await prisma.club.updateMany({
+          where: { id, organisationId },
+          data,
+        });
+        return res.count > 0;
+      },
+    },
+
+    priceRules: {
+      findManyForSeason(seasonId: string) {
+        return prisma.priceRule.findMany({
+          where: { seasonId, organisationId },
+          orderBy: [{ priority: "desc" }, { label: "asc" }],
+        });
+      },
+      create(
+        data: Omit<Prisma.PriceRuleUncheckedCreateInput, "organisationId">,
+      ) {
+        return prisma.priceRule.create({ data: { ...data, organisationId } });
+      },
+      async update(
+        id: string,
+        data: Omit<
+          Prisma.PriceRuleUncheckedUpdateInput,
+          "id" | "organisationId" | "venueId" | "seasonId"
+        >,
+      ) {
+        const res = await prisma.priceRule.updateMany({
+          where: { id, organisationId },
+          data,
+        });
+        return res.count > 0;
+      },
+    },
+
+    legalEntities: {
+      findMany() {
+        return prisma.legalEntity.findMany({
+          where: { organisationId },
+          orderBy: { name: "asc" },
+        });
+      },
+      findById(id: string) {
+        return prisma.legalEntity.findFirst({ where: { id, organisationId } });
+      },
+      create(
+        data: Omit<Prisma.LegalEntityUncheckedCreateInput, "organisationId">,
+      ) {
+        return prisma.legalEntity.create({ data: { ...data, organisationId } });
+      },
+      async update(
+        id: string,
+        data: Omit<Prisma.LegalEntityUncheckedUpdateInput, "id" | "organisationId">,
+      ) {
+        const res = await prisma.legalEntity.updateMany({
+          where: { id, organisationId },
+          data,
+        });
+        return res.count > 0;
       },
     },
 

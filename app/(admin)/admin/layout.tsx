@@ -13,6 +13,7 @@ import { VenueSwitcher } from "./venue-switcher";
 const NAV = [
   { href: "/admin", label: "Übersicht" },
   { href: "/admin/kalender", label: "Kalender" },
+  { href: "/admin/dauerplaetze", label: "Dauerplätze" },
   { href: "/admin/bestellungen", label: "Bestellungen" },
   { href: "/admin/kunden", label: "Kunden" },
   { href: "/admin/sperren", label: "Sperren" },

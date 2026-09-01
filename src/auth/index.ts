@@ -42,6 +42,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const user = await findUserForLogin(parsed.data.email);
         if (!user?.passwordHash || user.anonymizedAt) return null;
+        // Double-Opt-in (A1): Passwort-Login erst nach Bestätigung.
+        // Magic Link bleibt möglich und verifiziert die Adresse implizit.
+        if (!user.emailVerified) return null;
 
         const valid = await verifyPassword(
           user.passwordHash,

@@ -4,11 +4,15 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e",
   globalSetup: "./e2e/global-setup.ts",
-  // Dev-Server kompiliert Routen beim ersten Hit – 5 s Default ist zu knapp.
+  // Dev-Server kompiliert Routen beim ersten Hit – Defaults sind zu knapp,
+  // und zu viele Worker erzeugen einen Kompilier-Stau.
+  timeout: 60_000,
   expect: { timeout: 15_000 },
+  workers: process.env.CI ? 1 : 2,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  // lokal 1 Retry: parallele Specs teilen sich Dev-Server + DB
+  retries: process.env.CI ? 2 : 1,
   reporter: process.env.CI ? "github" : "list",
   use: {
     baseURL: "http://localhost:3000",

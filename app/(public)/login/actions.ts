@@ -4,6 +4,7 @@ import { AuthError } from "next-auth";
 import { z } from "zod";
 
 import { signIn, signOut } from "@/src/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export type LoginFormState = {
   error?: string;
@@ -37,6 +38,19 @@ export async function loginWithPassword(
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Ungültige Eingabe." };
+  }
+
+  // NF10: max. 5 Versuche pro Adresse in 15 Minuten (Default);
+  // lokal/E2E via LOGIN_RATE_LIMIT hochsetzbar
+  if (
+    !checkRateLimit(`login:${parsed.data.email}`, {
+      limit: Number(process.env.LOGIN_RATE_LIMIT ?? 5),
+      windowMs: 15 * 60 * 1000,
+    })
+  ) {
+    return {
+      error: "Zu viele Anmeldeversuche. Bitte in 15 Minuten erneut versuchen.",
+    };
   }
 
   try {

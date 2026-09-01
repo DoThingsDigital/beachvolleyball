@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { prisma } from "./client";
 import { createRepositories } from "./repositories";
+import { cleanupTestDb } from "./test/cleanup";
 
 // Integrationstests (Test-DB): Mandantenisolation (NF3) und
 // Doppelbuchungsschutz über das DB-Exclusion-Constraint (D4).
@@ -54,19 +55,8 @@ async function createTenantFixture(slug: string): Promise<Fixture> {
   return { orgId: org.id, venueId: venue.id, courtId: court.id };
 }
 
-async function cleanup() {
-  // Nur Test-DB: Fixture-Reste aus früheren Läufen entfernen (FK-Reihenfolge).
-  await prisma.booking.deleteMany({});
-  await prisma.court.deleteMany({});
-  await prisma.priceRule.deleteMany({});
-  await prisma.season.deleteMany({});
-  await prisma.venue.deleteMany({});
-  await prisma.legalEntity.deleteMany({});
-  await prisma.organisation.deleteMany({});
-}
-
 beforeAll(async () => {
-  await cleanup();
+  await cleanupTestDb();
   a = await createTenantFixture("a");
   b = await createTenantFixture("b");
 });

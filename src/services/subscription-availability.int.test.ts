@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { prisma } from "@/src/db/client";
+import { cleanupTestDb } from "@/src/db/test/cleanup";
 import { getSubscriptionAvailability } from "./subscription-availability";
 
 // Integrationstest (Test-DB) für Ticket 2.1: Vereinskontingent-Block und
@@ -12,24 +13,8 @@ let seasonId: string;
 let courtA: string;
 let courtB: string;
 
-async function cleanup() {
-  await prisma.booking.deleteMany({});
-  await prisma.subscription.deleteMany({});
-  await prisma.block.deleteMany({});
-  await prisma.priceRule.deleteMany({});
-  await prisma.clubMembership.deleteMany({});
-  await prisma.court.deleteMany({});
-  await prisma.season.deleteMany({});
-  await prisma.club.deleteMany({});
-  await prisma.venue.deleteMany({});
-  await prisma.legalEntity.deleteMany({});
-  await prisma.membership.deleteMany({});
-  await prisma.organisation.deleteMany({});
-  await prisma.user.deleteMany({ where: { email: { startsWith: "int-test-" } } });
-}
-
 beforeAll(async () => {
-  await cleanup();
+  await cleanupTestDb();
 
   const org = await prisma.organisation.create({
     data: { name: "Avail Org", slug: "org-avail" },

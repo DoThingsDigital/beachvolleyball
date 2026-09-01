@@ -141,6 +141,15 @@ export function createRepositories(ctx: TenantContext) {
       },
     },
 
+    orders: {
+      findForUser(orderId: string, userId: string) {
+        return prisma.order.findFirst({
+          where: { id: orderId, userId, organisationId },
+          include: { items: true },
+        });
+      },
+    },
+
     subscriptions: {
       // Dauerplätze, die Wochenslots der Saison belegen (PENDING zählt mit:
       // Hold/Zahlung läuft, der Slot darf nicht doppelt verkauft werden)

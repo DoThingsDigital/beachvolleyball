@@ -1,10 +1,11 @@
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
 import { formatCents } from "@/lib/format";
 import { getPublicShopContext } from "@/src/services/public-context";
 import { getSubscriptionAvailability } from "@/src/services/subscription-availability";
 import { getSubscriptionQuote } from "@/src/services/subscription-quote";
+
+import { CheckoutButton } from "./checkout-button";
 
 // Vorverkaufs-UI (Ticket 2.2, F2): Raster Wochentag × Startzeit mit Anzahl
 // freier Plätze; Auswahl über URL-Parameter (serverseitig gerendert).
@@ -244,15 +245,14 @@ export default async function VorverkaufPage({
             </dl>
           ) : null}
 
-          {quote && selectedCourt ? (
+          {quote && selectedCourt && weekday && startTime ? (
             <div className="mt-2">
-              <Button disabled title="Checkout folgt (Ticket 2.3/2.4)">
-                Weiter zum Checkout
-              </Button>
-              <p className="text-muted-foreground mt-1 text-xs">
-                Der Checkout wird gerade angebunden (Zahlung per SEPA oder
-                Karte).
-              </p>
+              <CheckoutButton
+                courtId={selectedCourt.id}
+                weekday={weekday}
+                startTime={startTime}
+                durationMin={durationMin}
+              />
             </div>
           ) : null}
         </section>

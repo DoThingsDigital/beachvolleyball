@@ -27,7 +27,22 @@ test("Raster, Auswahl und Preisangebot mit Terminanzahl", async ({ page }) => {
   await expect(page.getByTestId("quote-total")).toHaveText(/\d+,\d{2}\s*€/);
   await expect(
     page.getByRole("button", { name: "Weiter zum Checkout" }),
-  ).toBeDisabled();
+  ).toBeEnabled();
+});
+
+test("Checkout ohne Login leitet zur Anmeldung", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "einmal pro Lauf");
+
+  await page.goto("/vorverkauf");
+  await page.getByRole("link", { name: /^Do 19:00, \d+ Plätze frei$/ }).click();
+  await page
+    .locator("section", { hasText: "Platz wählen" })
+    .getByRole("link", { name: /^Feld \d/ })
+    .first()
+    .click();
+  await page.getByRole("button", { name: "Weiter zum Checkout" }).click();
+
+  await expect(page).toHaveURL(/\/login\?callbackUrl=/);
 });
 
 test("Mobil (375 px): kein horizontales Scrollen (NF7)", async ({

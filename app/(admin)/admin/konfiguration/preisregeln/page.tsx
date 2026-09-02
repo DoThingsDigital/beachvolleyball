@@ -46,7 +46,7 @@ function ruleFields(
       type: "number",
       defaultValue: rule?.memberPricePerHourCents ?? "",
     },
-    { name: "priority", label: "Priorität", type: "number", defaultValue: rule?.priority ?? 0 },
+    { name: "priority", label: "Priorität", type: "number", defaultValue: rule?.priority ?? 10 },
     {
       name: "courtId",
       label: "Gilt für",
@@ -131,6 +131,15 @@ export default async function PreisregelnPage({
           </li>
         ))}
       </ul>
+
+      <p className="text-muted-foreground text-xs">
+        <strong>Priorität</strong> ist nur relevant, wenn sich Regeln zeitlich
+        überschneiden: die höhere Zahl gewinnt. Solange deine Regeln lückenlos
+        nebeneinander liegen, lass überall 10 stehen. Für befristete Aktionen
+        oder Platz-Sonderpreise legst du eine zusätzliche Regel mit höherer
+        Priorität (z.&nbsp;B. 30) darüber – die Basisregeln bleiben unberührt.
+        Der Mitgliederpreis kommt immer aus der gewinnenden Regel.
+      </p>
 
       <section className="flex flex-col gap-2 border-t pt-4">
         <h2 className="text-lg font-medium">Neue Preisregel anlegen</h2>

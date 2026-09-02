@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { MultiSelect } from "../_components/multi-select";
 import {
   createBlockAction,
   endBlockAction,
@@ -40,6 +41,8 @@ export type BlockFormDefaults = {
   title?: string;
   clubId?: string;
   date?: string;
+  /** gesetzt = ganztägige Sperre bis einschließlich dieses Datums */
+  dateTo?: string;
   timeFrom?: string;
   timeTo?: string;
   weekdays?: number[];
@@ -69,6 +72,11 @@ export function BlockForm({
   );
   const [type, setType] = useState(defaults.type ?? "GESPERRT");
   const [weekly, setWeekly] = useState((defaults.weekdays?.length ?? 0) > 0);
+  // Spiegel der (unkontrollierten) Datumsfelder, nur für die Formularlogik:
+  // "bis" gesetzt und ungleich "von" = Ganztages-Zeitraum ohne Uhrzeiten/Serie.
+  const [dateVal, setDateVal] = useState(defaults.date ?? "");
+  const [dateToVal, setDateToVal] = useState(defaults.dateTo ?? "");
+  const isRange = dateToVal !== "" && dateToVal !== dateVal;
   const initialReleaseMode =
     defaults.releaseHoursBefore === 0
       ? "NONE"
@@ -79,32 +87,53 @@ export function BlockForm({
   const idp = defaults.blockId ?? "neu";
 
   return (
-    <form action={formAction} className="flex flex-col gap-3">
+    <form
+      action={formAction}
+      onReset={() => {
+        setDateVal(defaults.date ?? "");
+        setDateToVal(defaults.dateTo ?? "");
+      }}
+      className="flex flex-col gap-3"
+    >
       <input type="hidden" name="venueId" value={venueId} />
       {defaults.blockId ? (
         <input type="hidden" name="blockId" value={defaults.blockId} />
       ) : null}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="flex flex-col gap-1">
-          <Label htmlFor={`court-${idp}`}>Platz</Label>
-          <select
-            id={`court-${idp}`}
-            name="courtId"
-            defaultValue={defaults.courtId ?? ""}
-            required
-            className="border-input bg-background h-9 rounded-md border px-2 text-sm"
-          >
-            <option value="" disabled>
-              wählen …
-            </option>
-            {courts.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
+        {isEdit ? (
+          <div className="flex flex-col gap-1">
+            <Label htmlFor={`court-${idp}`}>Platz</Label>
+            <select
+              id={`court-${idp}`}
+              name="courtId"
+              defaultValue={defaults.courtId ?? ""}
+              required
+              className="border-input bg-background h-9 rounded-md border px-2 text-sm"
+            >
+              <option value="" disabled>
+                wählen …
               </option>
-            ))}
-          </select>
-        </div>
+              {courts.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1">
+            <Label htmlFor={`court-${idp}`}>Plätze</Label>
+            <MultiSelect
+              id={`court-${idp}`}
+              name="courtIds"
+              options={courts.map((c) => ({ value: c.id, label: c.name }))}
+              defaultValue={[]}
+              emptyLabel="Plätze wählen …"
+              hint="Je gewähltem Platz wird eine Sperre angelegt."
+            />
+          </div>
+        )}
 
         <div className="flex flex-col gap-1">
           <Label htmlFor={`type-${idp}`}>Typ</Label>
@@ -216,56 +245,77 @@ export function BlockForm({
           />
         </div>
 
-        <div className="flex flex-col gap-1">
-          <Label htmlFor={`date-${idp}`}>
-            {weekly ? "Erster Termin" : "Datum"}
-          </Label>
-          <Input
-            id={`date-${idp}`}
-            name="date"
-            type="date"
-            required
-            defaultValue={defaults.date ?? ""}
-          />
-        </div>
-
         <div className="flex gap-2">
           <div className="flex flex-1 flex-col gap-1">
-            <Label htmlFor={`from-${idp}`}>Von</Label>
+            <Label htmlFor={`date-${idp}`}>
+              {isRange ? "Datum von" : weekly ? "Erster Termin" : "Datum"}
+            </Label>
             <Input
-              id={`from-${idp}`}
-              name="timeFrom"
-              type="time"
+              id={`date-${idp}`}
+              name="date"
+              type="date"
               required
-              step={60 * 30}
-              defaultValue={defaults.timeFrom ?? ""}
+              defaultValue={defaults.date ?? ""}
+              onChange={(e) => setDateVal(e.target.value)}
             />
           </div>
           <div className="flex flex-1 flex-col gap-1">
-            <Label htmlFor={`to-${idp}`}>Bis</Label>
+            <Label htmlFor={`dateto-${idp}`}>bis (inkl.)</Label>
             <Input
-              id={`to-${idp}`}
-              name="timeTo"
-              type="time"
-              required
-              step={60 * 30}
-              defaultValue={defaults.timeTo ?? ""}
+              id={`dateto-${idp}`}
+              name="dateTo"
+              type="date"
+              defaultValue={defaults.dateTo ?? ""}
+              onChange={(e) => setDateToVal(e.target.value)}
             />
           </div>
         </div>
+
+        {isRange ? (
+          <p className="text-muted-foreground self-end pb-2 text-xs sm:col-span-1 lg:col-span-1">
+            Ganztägige Sperre: alle Tage im Zeitraum werden komplett gesperrt.
+          </p>
+        ) : (
+          <div className="flex gap-2">
+            <div className="flex flex-1 flex-col gap-1">
+              <Label htmlFor={`from-${idp}`}>Von</Label>
+              <Input
+                id={`from-${idp}`}
+                name="timeFrom"
+                type="time"
+                required
+                step={60 * 30}
+                defaultValue={defaults.timeFrom ?? ""}
+              />
+            </div>
+            <div className="flex flex-1 flex-col gap-1">
+              <Label htmlFor={`to-${idp}`}>Bis</Label>
+              <Input
+                id={`to-${idp}`}
+                name="timeTo"
+                type="time"
+                required
+                step={60 * 30}
+                defaultValue={defaults.timeTo ?? ""}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={weekly}
-          onChange={(e) => setWeekly(e.target.checked)}
-          className="size-4"
-        />
-        Wöchentlich wiederholen
-      </label>
+      {isRange ? null : (
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={weekly}
+            onChange={(e) => setWeekly(e.target.checked)}
+            className="size-4"
+          />
+          Wöchentlich wiederholen
+        </label>
+      )}
 
-      {weekly ? (
+      {weekly && !isRange ? (
         <div className="flex flex-wrap items-end gap-3">
           <fieldset className="flex gap-2">
             <legend className="mb-1 text-sm font-medium">Wochentage</legend>

@@ -83,6 +83,16 @@ export default async function SperrenPage() {
                 venue.timezone,
               );
               const { time: timeTo } = localParts(block.endAt, venue.timezone);
+              // Ganztages-Zeitraum: Start und Ende auf lokal 00:00; das
+              // inklusive Bis-Datum ist der Tag vor dem (exklusiven) Ende.
+              const isRange =
+                weekdays.length === 0 && timeFrom === "00:00" && timeTo === "00:00";
+              const dateTo = isRange
+                ? localParts(
+                    new Date(block.endAt.getTime() - 1),
+                    venue.timezone,
+                  ).date
+                : "";
               const until = parseUntil(block.rrule);
               const untilDate = until
                 ? localParts(until, venue.timezone).date
@@ -94,8 +104,9 @@ export default async function SperrenPage() {
                 title: block.title,
                 clubId: block.club?.id ?? "",
                 date,
-                timeFrom,
-                timeTo,
+                dateTo,
+                timeFrom: isRange ? "" : timeFrom,
+                timeTo: isRange ? "" : timeTo,
                 weekdays,
                 untilDate,
                 memberSelfBooking: block.memberSelfBooking,
@@ -113,7 +124,11 @@ export default async function SperrenPage() {
                         {weekdays.length > 0
                           ? `${weekdays.map((w) => WEEKDAY_SHORT[w - 1]).join(", ")} ${timeFrom}–${timeTo}` +
                             (untilDate ? ` bis ${untilDate}` : "")
-                          : `${date} ${timeFrom}–${timeTo}`}
+                          : isRange
+                            ? date === dateTo
+                              ? `${date} (ganztägig)`
+                              : `${date} – ${dateTo} (ganztägig)`
+                            : `${date} ${timeFrom}–${timeTo}`}
                         {block.club ? ` · ${block.club.name}` : ""}
                         {block.memberSelfBooking
                           ? " · Mitglieder-Buchungsfenster"

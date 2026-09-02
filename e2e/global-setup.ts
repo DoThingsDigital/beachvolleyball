@@ -37,6 +37,15 @@ export default async function globalSetup() {
     await pool.query(
       `DELETE FROM "PriceRule" WHERE label = 'E2E-Zweifelder-Regel'`,
     );
+    // E2E-Sperren (admin-sperren.spec) ebenfalls hier: ein beforeAll im Spec
+    // läuft je Worker und würde parallel frisch angelegte Blöcke wegräumen.
+    await pool.query(
+      `DELETE FROM "Booking" WHERE "blockId" IN
+         (SELECT id FROM "Block" WHERE title IN ('E2E-Wartung', 'E2E-Zeitraum'))`,
+    );
+    await pool.query(
+      `DELETE FROM "Block" WHERE title IN ('E2E-Wartung', 'E2E-Zeitraum')`,
+    );
   } finally {
     await pool.end();
   }

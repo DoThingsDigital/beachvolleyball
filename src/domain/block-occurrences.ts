@@ -67,6 +67,38 @@ export function listBlockOccurrences(params: {
 
   const weekdays = parseWeeklyBydays(block.rrule ?? null);
   if (!weekdays) {
+    // Ganztages-Zeitraum (Start und Ende auf lokal 00:00, so nur von
+    // Zeitraum-Sperren erzeugt): je lokalem Tag ein Termin 00:00–24:00.
+    // So blockiert eine bestehende Buchung nur ihren Tag statt der ganzen
+    // Spanne, und der Kalender zeigt tageweise Belegungen.
+    if (
+      wallMinutes(block.startAt, timezone) === 0 &&
+      wallMinutes(block.endAt, timezone) === 0
+    ) {
+      const out: BlockOccurrence[] = [];
+      let cursor = new TZDate(block.startAt.getTime(), timezone);
+      while (cursor.getTime() < block.endAt.getTime()) {
+        const next = new Date(
+          new TZDate(
+            cursor.getFullYear(),
+            cursor.getMonth(),
+            cursor.getDate() + 1,
+            0,
+            0,
+            timezone,
+          ).getTime(),
+        );
+        const dayStart = new Date(cursor.getTime());
+        if (
+          dayStart.getTime() < windowTo.getTime() &&
+          next.getTime() > windowFrom.getTime()
+        ) {
+          out.push({ startAt: dayStart, endAt: next });
+        }
+        cursor = new TZDate(next.getTime(), timezone);
+      }
+      return out;
+    }
     // Einmalige Sperre: materialisieren, wenn sie das Fenster schneidet.
     return block.startAt.getTime() < windowTo.getTime() &&
       block.endAt.getTime() > windowFrom.getTime()

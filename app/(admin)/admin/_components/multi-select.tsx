@@ -13,12 +13,15 @@ export function MultiSelect({
   options,
   defaultValue,
   emptyLabel,
+  hint,
 }: {
   id: string;
   name: string;
   options: { value: string; label: string }[];
   defaultValue: string[];
   emptyLabel: string;
+  /** optionale Fußzeile im aufgeklappten Panel */
+  hint?: string;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const initialRef = useRef(defaultValue);
@@ -100,9 +103,11 @@ export function MultiSelect({
             {o.label}
           </label>
         ))}
-        <p className="text-muted-foreground border-t px-1.5 pt-1.5 text-xs">
-          Keine Auswahl = {emptyLabel}
-        </p>
+        {hint ? (
+          <p className="text-muted-foreground border-t px-1.5 pt-1.5 text-xs">
+            {hint}
+          </p>
+        ) : null}
       </div>
     </div>
   );

@@ -144,7 +144,10 @@ export type BlockInput = {
   clubId?: string | null;
   /** "YYYY-MM-DD" (lokal): Datum des ersten Termins */
   date: string;
-  /** "HH:MM" lokal */
+  /** "YYYY-MM-DD" (lokal, inklusiv): gesetzt und nach `date` = ganztägige
+   *  Sperre über den Zeitraum; timeFrom/timeTo werden dann ignoriert. */
+  dateTo?: string | null;
+  /** "HH:MM" lokal (leer erlaubt bei Ganztages-Zeitraum) */
   timeFrom: string;
   timeTo: string;
   /** ISO-Wochentage 1–7; leer/undefined = einmalige Sperre */
@@ -162,8 +165,40 @@ function buildRule(
   input: BlockInput,
   timezone: string,
 ): { startAt: Date; endAt: Date; rrule: string | null } {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) {
+    throw new DomainError("INVALID_PERIOD", "Ungültige Datums- oder Zeitangabe.");
+  }
+
+  // Ganztages-Zeitraum: "von"–"bis" (inklusiv) sperrt komplette lokale Tage
+  // (00:00–24:00); die Materialisierung splittet in Tages-Termine.
+  if (input.dateTo && input.dateTo !== input.date) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input.dateTo)) {
+      throw new DomainError("INVALID_PERIOD", "Ungültiges Bis-Datum.");
+    }
+    if (input.dateTo < input.date) {
+      throw new DomainError(
+        "INVALID_PERIOD",
+        "Bis-Datum liegt vor dem Beginn.",
+      );
+    }
+    if ((input.weekdays ?? []).length > 0) {
+      throw new DomainError(
+        "INVALID_PERIOD",
+        "Zeitraum-Sperren (ganze Tage) lassen sich nicht mit einer wöchentlichen Serie kombinieren.",
+      );
+    }
+    const [y, m, d] = input.date.split("-").map(Number);
+    const [uy, um, ud] = input.dateTo.split("-").map(Number);
+    const startAt = new Date(
+      new TZDate(y!, m! - 1, d!, 0, 0, timezone).getTime(),
+    );
+    const endAt = new Date(
+      new TZDate(uy!, um! - 1, ud! + 1, 0, 0, timezone).getTime(),
+    );
+    return { startAt, endAt, rrule: null };
+  }
+
   if (
-    !/^\d{4}-\d{2}-\d{2}$/.test(input.date) ||
     !/^\d{2}:\d{2}$/.test(input.timeFrom) ||
     !/^\d{2}:\d{2}$/.test(input.timeTo)
   ) {

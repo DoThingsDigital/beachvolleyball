@@ -371,3 +371,118 @@ describe("materializeBlock (5.1, E1/E2)", () => {
     expect(again.created).toBe(0);
   });
 });
+
+describe("Ganztages-Zeitraum (dateTo)", () => {
+  /** "YYYY-MM-DD" (UTC-Mittag, DST-neutral) in n Tagen. */
+  function dateStr(offsetDays: number): string {
+    const d = new Date(Date.now() + offsetDays * 86_400_000);
+    return new Date(
+      Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 12),
+    )
+      .toISOString()
+      .slice(0, 10);
+  }
+
+  it("legt je Tag eine ganztägige Belegung an; Konflikt betrifft nur seinen Tag", async () => {
+    const from = dateStr(10);
+    const middle = dateStr(11);
+    const to = dateStr(12);
+
+    // Bestehende Kundenbuchung am mittleren Tag → nur dieser Tag scheitert
+    const [y, m, d] = middle.split("-").map(Number);
+    await prisma.booking.create({
+      data: {
+        organisationId: orgId,
+        venueId,
+        courtId: court2,
+        startAt: new Date(new TZDate(y!, m! - 1, d!, 10, 0, TZ).getTime()),
+        endAt: new Date(new TZDate(y!, m! - 1, d!, 11, 0, TZ).getTime()),
+        kind: "CUSTOMER",
+        status: "CONFIRMED",
+        usageType: "KOMMERZIELL",
+        source: "ONLINE",
+        userId: adminId,
+      },
+    });
+
+    const { blockId, materialized } = await createBlock(
+      ctx(),
+      {
+        venueId,
+        courtId: court2,
+        type: "GESPERRT",
+        title: "Umbau komplett",
+        date: from,
+        dateTo: to,
+        timeFrom: "",
+        timeTo: "",
+      },
+      adminId,
+    );
+    expect(materialized.created).toBe(2);
+    expect(materialized.skippedConflicts).toHaveLength(1);
+
+    const bookings = await prisma.booking.findMany({
+      where: { blockId, status: "CONFIRMED" },
+      orderBy: { startAt: "asc" },
+    });
+    expect(bookings).toHaveLength(2);
+    // Tagesgrenzen liegen auf lokal 00:00 und decken je 24 h ab
+    for (const b of bookings) {
+      const local = new TZDate(b.startAt.getTime(), TZ);
+      expect(local.getHours()).toBe(0);
+      expect(local.getMinutes()).toBe(0);
+      const hours =
+        (b.endAt.getTime() - b.startAt.getTime()) / 3_600_000;
+      expect([23, 24, 25]).toContain(hours);
+    }
+
+    // Der ganze Tag ist im Wochenraster gesperrt
+    invalidateOccupancyCache();
+    const week = await getWeekOccupancy(ctx(), {
+      venueId,
+      startDate: from,
+    });
+    const day = week.days.find((x) => x.date === from)!;
+    expect(day.slots.every((s) => s.states[court2] !== "FREI")).toBe(true);
+  });
+
+  it("lehnt Zeitraum plus Wochentags-Serie ab", async () => {
+    await expect(
+      createBlock(
+        ctx(),
+        {
+          venueId,
+          courtId: court1,
+          type: "GESPERRT",
+          title: "Ungültige Kombi",
+          date: dateStr(14),
+          dateTo: dateStr(15),
+          timeFrom: "",
+          timeTo: "",
+          weekdays: [1, 2],
+        },
+        adminId,
+      ),
+    ).rejects.toMatchObject({ code: "INVALID_PERIOD" });
+  });
+
+  it("lehnt Bis-Datum vor dem Beginn ab", async () => {
+    await expect(
+      createBlock(
+        ctx(),
+        {
+          venueId,
+          courtId: court1,
+          type: "GESPERRT",
+          title: "Rueckwaerts",
+          date: dateStr(15),
+          dateTo: dateStr(14),
+          timeFrom: "",
+          timeTo: "",
+        },
+        adminId,
+      ),
+    ).rejects.toMatchObject({ code: "INVALID_PERIOD" });
+  });
+});

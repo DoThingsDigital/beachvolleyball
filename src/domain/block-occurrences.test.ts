@@ -34,6 +34,78 @@ describe("parseUntil", () => {
   });
 });
 
+describe("listBlockOccurrences – Ganztages-Zeitraum (00:00→00:00)", () => {
+  it("splittet einen mehrtägigen Zeitraum in Tages-Termine", () => {
+    const occ = listBlockOccurrences({
+      block: {
+        startAt: new Date("2026-11-20T00:00:00+01:00"),
+        endAt: new Date("2026-11-23T00:00:00+01:00"), // 3 Tage inkl. 22.11.
+        rrule: null,
+      },
+      timezone: TZ,
+      windowFrom: new Date("2026-11-01T00:00:00Z"),
+      windowTo: new Date("2026-12-01T00:00:00Z"),
+    });
+    expect(occ.map((o) => [iso(o.startAt), iso(o.endAt)])).toEqual([
+      ["2026-11-19T23:00:00.000Z", "2026-11-20T23:00:00.000Z"],
+      ["2026-11-20T23:00:00.000Z", "2026-11-21T23:00:00.000Z"],
+      ["2026-11-21T23:00:00.000Z", "2026-11-22T23:00:00.000Z"],
+    ]);
+  });
+
+  it("Zeitumstellung 25.10.2026: der Umstellungstag hat 25 Stunden", () => {
+    const occ = listBlockOccurrences({
+      block: {
+        startAt: new Date("2026-10-24T00:00:00+02:00"),
+        endAt: new Date("2026-10-26T00:00:00+01:00"),
+        rrule: null,
+      },
+      timezone: TZ,
+      windowFrom: new Date("2026-10-01T00:00:00Z"),
+      windowTo: new Date("2026-11-01T00:00:00Z"),
+    });
+    expect(occ).toHaveLength(2);
+    const dstDay = occ[1]!;
+    expect(iso(dstDay.startAt)).toBe("2026-10-24T22:00:00.000Z"); // 00:00 CEST
+    expect(iso(dstDay.endAt)).toBe("2026-10-25T23:00:00.000Z"); // 00:00 CET
+    expect(dstDay.endAt.getTime() - dstDay.startAt.getTime()).toBe(
+      25 * 3_600_000,
+    );
+  });
+
+  it("liefert nur Tage, die das Fenster schneiden", () => {
+    const occ = listBlockOccurrences({
+      block: {
+        startAt: new Date("2026-11-20T00:00:00+01:00"),
+        endAt: new Date("2026-11-23T00:00:00+01:00"),
+        rrule: null,
+      },
+      timezone: TZ,
+      windowFrom: new Date("2026-11-21T12:00:00Z"), // ab Mitte des 2. Tags
+      windowTo: new Date("2026-12-01T00:00:00Z"),
+    });
+    expect(occ.map((o) => iso(o.startAt))).toEqual([
+      "2026-11-20T23:00:00.000Z",
+      "2026-11-21T23:00:00.000Z",
+    ]);
+  });
+
+  it("einmalige Sperre mit Uhrzeiten bleibt ein einzelner Termin", () => {
+    const occ = listBlockOccurrences({
+      block: {
+        startAt: new Date("2026-11-18T08:00:00+01:00"),
+        endAt: new Date("2026-11-18T10:00:00+01:00"),
+        rrule: null,
+      },
+      timezone: TZ,
+      windowFrom: new Date("2026-11-01T00:00:00Z"),
+      windowTo: new Date("2026-12-01T00:00:00Z"),
+    });
+    expect(occ).toHaveLength(1);
+    expect(iso(occ[0]!.startAt)).toBe("2026-11-18T07:00:00.000Z");
+  });
+});
+
 describe("listBlockOccurrences", () => {
   it("erste Woche: Do, dann Mo–Do (Serie beginnt am startAt)", () => {
     const occ = listBlockOccurrences({

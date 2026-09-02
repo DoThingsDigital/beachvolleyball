@@ -14,47 +14,75 @@ import {
 
 export type BlockActionState = { ok?: string; error?: string };
 
-const blockSchema = z.object({
-  venueId: z.string().min(1),
-  courtId: z.string().min(1, "Platz wählen."),
-  type: z.enum(["VEREIN", "LIGA", "WARTUNG", "EVENT", "GESPERRT"]),
-  title: z.string().trim().min(2, "Titel angeben.").max(120),
-  clubId: z
-    .string()
-    .transform((v) => (v === "" ? null : v))
-    .nullable(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Datum angeben."),
-  timeFrom: z.string().regex(/^\d{2}:\d{2}$/, "Beginn angeben."),
-  timeTo: z.string().regex(/^\d{2}:\d{2}$/, "Ende angeben."),
-  weekdays: z.array(z.coerce.number().min(1).max(7)).max(7),
-  untilDate: z
-    .string()
-    .transform((v) => (v === "" ? null : v))
-    .nullable(),
-  memberSelfBooking: z.boolean(),
-  releaseMode: z.enum(["VENUE", "CUSTOM", "NONE"]),
-  releaseHours: z
-    .string()
-    .transform((v) => (v === "" ? null : Number(v)))
-    .nullable(),
-});
+const blockBase = z
+  .object({
+    venueId: z.string().min(1),
+    type: z.enum(["VEREIN", "LIGA", "WARTUNG", "EVENT", "GESPERRT"]),
+    title: z.string().trim().min(2, "Titel angeben.").max(120),
+    clubId: z
+      .string()
+      .transform((v) => (v === "" ? null : v))
+      .nullable(),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Datum angeben."),
+    // gesetzt und nach "date" = ganztägige Sperre über den Zeitraum
+    dateTo: z
+      .string()
+      .transform((v) => (v === "" ? null : v))
+      .nullable(),
+    timeFrom: z.string(),
+    timeTo: z.string(),
+    weekdays: z.array(z.coerce.number().min(1).max(7)).max(7),
+    untilDate: z
+      .string()
+      .transform((v) => (v === "" ? null : v))
+      .nullable(),
+    memberSelfBooking: z.boolean(),
+    releaseMode: z.enum(["VENUE", "CUSTOM", "NONE"]),
+    releaseHours: z
+      .string()
+      .transform((v) => (v === "" ? null : Number(v)))
+      .nullable(),
+  })
+  .superRefine((v, ctx) => {
+    const isRange = Boolean(v.dateTo && v.dateTo !== v.date);
+    if (isRange) return; // Uhrzeiten irrelevant, Rest prüft der Service
+    if (!/^\d{2}:\d{2}$/.test(v.timeFrom)) {
+      ctx.addIssue({ code: "custom", message: "Beginn angeben.", path: ["timeFrom"] });
+    }
+    if (!/^\d{2}:\d{2}$/.test(v.timeTo)) {
+      ctx.addIssue({ code: "custom", message: "Ende angeben.", path: ["timeTo"] });
+    }
+  });
 
-function parse(formData: FormData) {
-  return blockSchema.safeParse({
+const createSchema = z
+  .object({
+    courtIds: z
+      .array(z.string().min(1))
+      .min(1, "Mindestens einen Platz wählen.")
+      .max(50),
+  })
+  .and(blockBase);
+
+const updateSchema = z
+  .object({ courtId: z.string().min(1, "Platz wählen.") })
+  .and(blockBase);
+
+function baseFields(formData: FormData) {
+  return {
     venueId: formData.get("venueId"),
-    courtId: formData.get("courtId"),
     type: formData.get("type"),
     title: formData.get("title"),
     clubId: formData.get("clubId") ?? "",
     date: formData.get("date"),
-    timeFrom: formData.get("timeFrom"),
-    timeTo: formData.get("timeTo"),
+    dateTo: formData.get("dateTo") ?? "",
+    timeFrom: formData.get("timeFrom") ?? "",
+    timeTo: formData.get("timeTo") ?? "",
     weekdays: formData.getAll("weekdays"),
     untilDate: formData.get("untilDate") ?? "",
     memberSelfBooking: formData.get("memberSelfBooking") === "on",
     releaseMode: formData.get("releaseMode") ?? "VENUE",
     releaseHours: formData.get("releaseHours") ?? "",
-  });
+  };
 }
 
 /** Auto-Freigabe-Auswahl → releaseHoursBefore (null = Venue-Default,
@@ -100,20 +128,53 @@ export async function createBlockAction(
   formData: FormData,
 ): Promise<BlockActionState> {
   const staff = await requireStaff();
-  const parsed = parse(formData);
+  const parsed = createSchema.safeParse({
+    ...baseFields(formData),
+    courtIds: formData.getAll("courtIds"),
+  });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Ungültige Eingabe." };
   }
+  const courtIds = [...new Set(parsed.data.courtIds)];
+  const total: MaterializeResult = {
+    created: 0,
+    cancelled: 0,
+    kept: 0,
+    skippedConflicts: [],
+  };
+  let done = 0;
   try {
-    const { materialized } = await createBlock(
-      staff.ctx,
-      { ...parsed.data, releaseHoursBefore: resolveReleaseHours(parsed.data) },
-      staff.userId,
-    );
+    for (const courtId of courtIds) {
+      const { materialized } = await createBlock(
+        staff.ctx,
+        {
+          ...parsed.data,
+          courtId,
+          releaseHoursBefore: resolveReleaseHours(parsed.data),
+        },
+        staff.userId,
+      );
+      done += 1;
+      total.created += materialized.created;
+      total.cancelled += materialized.cancelled;
+      total.kept += materialized.kept;
+      total.skippedConflicts.push(...materialized.skippedConflicts);
+    }
     revalidatePath("/admin/sperren");
-    return { ok: summarize(materialized, parsed.data.memberSelfBooking) };
+    const prefix = courtIds.length > 1 ? `${courtIds.length} Sperren angelegt – ` : "";
+    return {
+      ok: prefix + summarize(total, parsed.data.memberSelfBooking),
+    };
   } catch (error) {
-    if (error instanceof DomainError) return { error: error.message };
+    revalidatePath("/admin/sperren");
+    if (error instanceof DomainError) {
+      return {
+        error:
+          done > 0
+            ? `${error.message} (${done} von ${courtIds.length} Sperren wurden bereits angelegt – Liste prüfen.)`
+            : error.message,
+      };
+    }
     throw error;
   }
 }
@@ -124,7 +185,10 @@ export async function updateBlockAction(
 ): Promise<BlockActionState> {
   const staff = await requireStaff();
   const blockId = String(formData.get("blockId") ?? "");
-  const parsed = parse(formData);
+  const parsed = updateSchema.safeParse({
+    ...baseFields(formData),
+    courtId: formData.get("courtId"),
+  });
   if (!blockId || !parsed.success) {
     return {
       error: parsed.success

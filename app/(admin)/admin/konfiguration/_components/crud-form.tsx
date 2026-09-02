@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import { MultiSelect } from "./multi-select";
+import { MultiSelect } from "../../_components/multi-select";
 
 export type CrudActionState = { ok?: boolean; error?: string };
 
@@ -95,6 +95,7 @@ export function CrudForm({
                   Array.isArray(f.defaultValue) ? f.defaultValue : []
                 }
                 emptyLabel={f.emptyLabel ?? "Alle"}
+                hint={`Keine Auswahl = ${f.emptyLabel ?? "Alle"}`}
               />
             </div>
           );

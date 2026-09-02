@@ -202,6 +202,51 @@ describe("releaseUnconfirmedQuota (5.2, E3)", () => {
     expect(second.released).toBe(0);
   });
 
+  it("releaseHoursBefore=0: fest reserviert, wird nie freigegeben", async () => {
+    const fixedBlock = await prisma.block.create({
+      data: {
+        organisationId: orgId,
+        venueId,
+        courtId,
+        clubId,
+        type: "VEREIN",
+        title: "Fix reserviert",
+        startAt: bookingAt(2, 8).startAt,
+        endAt: bookingAt(2, 9).startAt,
+        rrule: null,
+        releaseHoursBefore: 0,
+        createdByUserId: (
+          await prisma.user.findFirstOrThrow({
+            where: { email: "int-test-qu-admin@example.org" },
+          })
+        ).id,
+      },
+    });
+    const { startAt, endAt } = bookingAt(1, 8); // morgen früh, tief in der 48h-Frist
+    const fixedBooking = await prisma.booking.create({
+      data: {
+        organisationId: orgId,
+        venueId,
+        courtId,
+        blockId: fixedBlock.id,
+        clubId,
+        startAt,
+        endAt,
+        kind: "BLOCK",
+        status: "CONFIRMED",
+        usageType: "VEREIN",
+        source: "BLOCK",
+        confirmedAt: new Date(),
+      },
+    });
+
+    await releaseUnconfirmedQuota();
+    const row = await prisma.booking.findUniqueOrThrow({
+      where: { id: fixedBooking.id },
+    });
+    expect(row.status).toBe("CONFIRMED"); // bleibt beim Verein
+  });
+
   it("Block-Override der Frist schlägt den Venue-Default", async () => {
     // Block mit 200 h Vorlauf: auch der 7-Tage-Termin ist fällig
     await prisma.block.update({

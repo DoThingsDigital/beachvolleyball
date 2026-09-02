@@ -153,6 +153,9 @@ export type BlockInput = {
   untilDate?: string | null;
   /** E-005: Mitglieder-Buchungsfenster statt Vereinsbetrieb (nur VEREIN) */
   memberSelfBooking?: boolean;
+  /** Auto-Freigabe: null = Venue-Default, 0 = nie (fest reserviert),
+   *  sonst Stunden vor Beginn */
+  releaseHoursBefore?: number | null;
 };
 
 function buildRule(
@@ -243,6 +246,7 @@ export async function createBlock(
     endAt: rule.endAt,
     rrule: rule.rrule,
     memberSelfBooking: input.type === "VEREIN" && (input.memberSelfBooking ?? false),
+    releaseHoursBefore: input.releaseHoursBefore ?? null,
     createdByUserId: actorUserId,
   });
   await repos.auditLogs.create({
@@ -296,6 +300,7 @@ export async function updateBlock(
     endAt: rule.endAt,
     rrule: rule.rrule,
     memberSelfBooking: input.type === "VEREIN" && (input.memberSelfBooking ?? false),
+    releaseHoursBefore: input.releaseHoursBefore ?? null,
   });
   if (!ok) throw new DomainError("NOT_FOUND", "Sperre nicht gefunden.");
   await repos.auditLogs.create({

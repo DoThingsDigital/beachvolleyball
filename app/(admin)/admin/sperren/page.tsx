@@ -99,6 +99,7 @@ export default async function SperrenPage() {
                 weekdays,
                 untilDate,
                 memberSelfBooking: block.memberSelfBooking,
+                releaseHoursBefore: block.releaseHoursBefore,
               };
               const futureCount = futureCounts.get(block.id) ?? 0;
               return (
@@ -117,6 +118,13 @@ export default async function SperrenPage() {
                         {block.memberSelfBooking
                           ? " · Mitglieder-Buchungsfenster"
                           : ` · ${futureCount} zukünftige Termine`}
+                        {block.type === "VEREIN"
+                          ? block.releaseHoursBefore === 0
+                            ? " · fest reserviert (keine Auto-Freigabe)"
+                            : block.releaseHoursBefore != null
+                              ? ` · Freigabe ${block.releaseHoursBefore} Std. vorher`
+                              : ""
+                          : ""}
                       </span>
                     </p>
                     <EndBlockButton blockId={block.id} />

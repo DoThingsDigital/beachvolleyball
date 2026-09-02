@@ -32,6 +32,11 @@ const blockSchema = z.object({
     .transform((v) => (v === "" ? null : v))
     .nullable(),
   memberSelfBooking: z.boolean(),
+  releaseMode: z.enum(["VENUE", "CUSTOM", "NONE"]),
+  releaseHours: z
+    .string()
+    .transform((v) => (v === "" ? null : Number(v)))
+    .nullable(),
 });
 
 function parse(formData: FormData) {
@@ -47,7 +52,23 @@ function parse(formData: FormData) {
     weekdays: formData.getAll("weekdays"),
     untilDate: formData.get("untilDate") ?? "",
     memberSelfBooking: formData.get("memberSelfBooking") === "on",
+    releaseMode: formData.get("releaseMode") ?? "VENUE",
+    releaseHours: formData.get("releaseHours") ?? "",
   });
+}
+
+/** Auto-Freigabe-Auswahl → releaseHoursBefore (null = Venue-Default,
+ *  0 = nie/fest reserviert, sonst Stunden). */
+function resolveReleaseHours(data: {
+  releaseMode: "VENUE" | "CUSTOM" | "NONE";
+  releaseHours: number | null;
+}): number | null {
+  if (data.releaseMode === "NONE") return 0;
+  if (data.releaseMode === "CUSTOM") {
+    const hours = Math.round(data.releaseHours ?? 0);
+    return hours > 0 ? hours : null;
+  }
+  return null;
 }
 
 function summarize(
@@ -86,7 +107,7 @@ export async function createBlockAction(
   try {
     const { materialized } = await createBlock(
       staff.ctx,
-      parsed.data,
+      { ...parsed.data, releaseHoursBefore: resolveReleaseHours(parsed.data) },
       staff.userId,
     );
     revalidatePath("/admin/sperren");
@@ -115,7 +136,7 @@ export async function updateBlockAction(
     const materialized = await updateBlock(
       staff.ctx,
       blockId,
-      parsed.data,
+      { ...parsed.data, releaseHoursBefore: resolveReleaseHours(parsed.data) },
       staff.userId,
     );
     revalidatePath("/admin/sperren");

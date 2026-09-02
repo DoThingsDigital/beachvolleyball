@@ -15,6 +15,8 @@ export type QuotaBooking = {
   status: "CONFIRMED" | "RELEASED";
   clubConfirmed: boolean;
   label: string;
+  /** fest reserviert (keine Auto-Freigabe) → kein Bestätigen nötig */
+  fixedReserved: boolean;
 };
 
 function QuotaRow({
@@ -39,6 +41,10 @@ function QuotaRow({
         {booking.status === "RELEASED" ? (
           <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-semibold">
             Freigegeben
+          </span>
+        ) : booking.fixedReserved ? (
+          <span className="bg-ice text-foreground rounded-full px-2 py-0.5 text-xs font-semibold">
+            Fest reserviert
           </span>
         ) : booking.clubConfirmed ? (
           <span className="bg-ice text-foreground rounded-full px-2 py-0.5 text-xs font-semibold">
@@ -71,7 +77,7 @@ function QuotaRow({
           >
             Beschriften
           </Button>
-          {!booking.clubConfirmed ? (
+          {!booking.clubConfirmed && !booking.fixedReserved ? (
             <Button
               type="submit"
               name="action"

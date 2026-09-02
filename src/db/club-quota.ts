@@ -21,6 +21,7 @@ export function findUpcomingQuotaBookings(ctx: TenantContext, clubId: string) {
       clubConfirmedAt: true,
       label: true,
       court: { select: { name: true } },
+      block: { select: { releaseHoursBefore: true } },
     },
     orderBy: { startAt: "asc" },
     take: 60,

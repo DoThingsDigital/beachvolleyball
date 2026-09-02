@@ -71,6 +71,8 @@ export default async function VereinPage() {
           status: b.status as QuotaBooking["status"],
           clubConfirmed: b.clubConfirmedAt !== null,
           label: b.label ?? "",
+          // 0 = fest reserviert, keine Auto-Freigabe → nichts zu bestätigen
+          fixedReserved: b.block?.releaseHoursBefore === 0,
         }),
       ),
       windowBookings: await findMemberWindowBookings(shop.ctx, club.id),

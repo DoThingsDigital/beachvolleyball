@@ -45,6 +45,8 @@ export type BlockFormDefaults = {
   weekdays?: number[];
   untilDate?: string;
   memberSelfBooking?: boolean;
+  /** null = Venue-Default, 0 = nie (fest reserviert), sonst Stunden */
+  releaseHoursBefore?: number | null;
 };
 
 export function BlockForm({
@@ -67,6 +69,13 @@ export function BlockForm({
   );
   const [type, setType] = useState(defaults.type ?? "GESPERRT");
   const [weekly, setWeekly] = useState((defaults.weekdays?.length ?? 0) > 0);
+  const initialReleaseMode =
+    defaults.releaseHoursBefore === 0
+      ? "NONE"
+      : defaults.releaseHoursBefore != null
+        ? "CUSTOM"
+        : "VENUE";
+  const [releaseMode, setReleaseMode] = useState(initialReleaseMode);
   const idp = defaults.blockId ?? "neu";
 
   return (
@@ -149,6 +158,51 @@ export function BlockForm({
               und der Verein verwaltet sie unter /verein.
             </span>
           </label>
+        ) : null}
+
+        {type === "VEREIN" ? (
+          <div className="col-span-2 flex flex-wrap items-end gap-2 sm:col-span-3 lg:col-span-3">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor={`release-${idp}`}>Automatische Freigabe</Label>
+              <select
+                id={`release-${idp}`}
+                name="releaseMode"
+                value={releaseMode}
+                onChange={(e) => setReleaseMode(e.target.value)}
+                className="border-input bg-background h-9 rounded-md border px-2 text-sm"
+              >
+                <option value="VENUE">Standard des Standorts</option>
+                <option value="CUSTOM">Eigene Frist</option>
+                <option value="NONE">
+                  Keine – fest für den Verein reserviert
+                </option>
+              </select>
+            </div>
+            {releaseMode === "CUSTOM" ? (
+              <div className="flex flex-col gap-1">
+                <Label htmlFor={`release-h-${idp}`}>Stunden vor Beginn</Label>
+                <Input
+                  id={`release-h-${idp}`}
+                  name="releaseHours"
+                  type="number"
+                  min={1}
+                  className="w-28"
+                  defaultValue={
+                    defaults.releaseHoursBefore && defaults.releaseHoursBefore > 0
+                      ? defaults.releaseHoursBefore
+                      : ""
+                  }
+                />
+              </div>
+            ) : (
+              <input type="hidden" name="releaseHours" value="" />
+            )}
+            <p className="text-muted-foreground max-w-md text-xs">
+              Ungebuchte bzw. unbestätigte Vereins-Slots werden so viele
+              Stunden vor Beginn für alle freigegeben. &bdquo;Keine&ldquo;
+              hält die Zeit die ganze Saison fest beim Verein.
+            </p>
+          </div>
         ) : null}
 
         <div className="flex flex-col gap-1">

@@ -14,9 +14,9 @@ Definition of Done (global): Code gemerged, Tests grün, Migration angewendet, i
 | [x] 0.2 | Next.js + TypeScript strict + Tailwind + shadcn/ui, ESLint/Prettier, Vitest, Playwright | 3 | NF9 | `pnpm test` und `pnpm e2e` laufen leer durch |
 | [x] 0.3 | Postgres (lokal Docker + Staging EU), Prisma, Migrations-Pipeline mit Custom-SQL-Schritt | 3 | NF6 | `prisma migrate dev` inkl. `btree_gist` |
 | [x] 0.4 | Auth.js v5: Magic Link + Passwort, Session, Rollen-Middleware | 4 | A1 | Login/Logout E2E |
-| [ ] 0.5 | CI (Lint, Test, Build), Staging-Deploy, Sentry, `.env.example` | 2 | NF12 | Preview-Deploy pro PR |
+| [~] 0.5 | CI (Lint, Test, Build), Staging-Deploy, Sentry, `.env.example` | 2 | NF12 | CI ✓, .env.example ✓, Staging läuft (buchen.72-61-88-8.sslip.io, deploy/); offen: Sentry (Account fehlt), Preview-Deploy pro PR |
 | [x] 0.6 | Stripe-Testaccount, Webhook-Endpunkt mit Signaturprüfung, Stripe CLI lokal | 1 | G4 | Test-Event landet in `WebhookEvent` |
-| [ ] 0.7 | Hostinger-VPS: Standort DE prüfen, Ubuntu 24.04 härten (SSH-Key, ufw, fail2ban, unattended-upgrades), Coolify mit Staging + Prod, Postgres-Container, nächtlicher `pg_dump` auf externen S3, Restore-Test | 3 | NF6 | Restore aus Backup einmal erfolgreich durchgespielt |
+| [~] 0.7 | Hostinger-VPS: Standort DE prüfen, Ubuntu 24.04 härten (SSH-Key, ufw, fail2ban, unattended-upgrades), Coolify mit Staging + Prod, Postgres-Container, nächtlicher `pg_dump` auf externen S3, Restore-Test | 3 | NF6 | SSH-Key ✓, fail2ban ✓, unattended-upgrades ✓, Postgres-Container ✓, täglicher pg_dump lokal (14 Tage) ✓; statt Coolify bewusst schlankes Compose+nginx (deploy/README). Offen: Hostinger-Firewall (22/80/443/8080), externes S3-Backup, Restore-Test |
 
 > **Stand 0.3 (31.08.2026):** Lokal verifiziert: `pnpm db:up` + `pnpm prisma migrate dev` grün, `btree_gist` 1.7 aktiv, Exclusion-Constraint-Probe lehnt Überlappungen ab, Test-DB `dtd_booking_test` vorhanden. Container läuft auf **Port 5433** (natives PostgreSQL 16 belegt auf Janicks Rechner Port 5432). Staging-Postgres (EU) folgt mit Ticket 0.5/0.7.
 

@@ -47,11 +47,15 @@ test("Preisregel für zwei Plätze anlegen und per Vorschau prüfen", async ({
   await createSection.locator("#pricePerHourCents-neu").fill("9900");
   await createSection.locator("#memberPricePerHourCents-neu").fill("8800");
   await createSection.locator("#priority-neu").fill("50");
-  const courtGroup = createSection.getByRole("group", {
-    name: /Gilt für Plätze/,
-  });
-  await courtGroup.getByRole("checkbox", { name: "Feld 1" }).check();
-  await courtGroup.getByRole("checkbox", { name: "Feld 2" }).check();
+  // Platz-Dropdown öffnen, zwei Felder anhaken, mit Escape schließen.
+  // Accessible Name des Triggers ist das Label (Gilt für), die Auswahl steht
+  // als Text im Button.
+  const courtTrigger = createSection.getByRole("button", { name: "Gilt für" });
+  await courtTrigger.click();
+  await createSection.getByRole("checkbox", { name: "Feld 1" }).check();
+  await createSection.getByRole("checkbox", { name: "Feld 2" }).check();
+  await page.keyboard.press("Escape");
+  await expect(courtTrigger).toContainText("Feld 1, Feld 2");
   await createSection.getByRole("button", { name: "Anlegen" }).click();
   await expect(createSection.getByRole("status")).toHaveText("Gespeichert.");
 

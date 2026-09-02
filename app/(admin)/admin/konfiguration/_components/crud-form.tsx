@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { MultiSelect } from "./multi-select";
+
 export type CrudActionState = { ok?: boolean; error?: string };
 
 export type CrudField = {
@@ -19,10 +21,12 @@ export type CrudField = {
     | "checkbox"
     | "select"
     | "email"
-    | "multicheckbox";
+    | "multiselect";
   options?: { value: string; label: string }[];
   required?: boolean;
   defaultValue?: string | number | boolean | string[];
+  // multiselect: Anzeige bei leerer Auswahl (z. B. "Alle Plätze")
+  emptyLabel?: string;
 };
 
 type CrudAction = (
@@ -79,33 +83,20 @@ export function CrudForm({
             </label>
           );
         }
-        if (f.type === "multicheckbox") {
-          const selected = Array.isArray(f.defaultValue) ? f.defaultValue : [];
+        if (f.type === "multiselect") {
           return (
-            <fieldset key={f.name} className="flex min-w-0 flex-col gap-1">
-              <legend className="text-sm leading-none font-medium">
-                {f.label}
-              </legend>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1.5">
-                {f.options?.map((o) => (
-                  <label
-                    key={o.value}
-                    htmlFor={`${id}-${o.value}`}
-                    className="flex items-center gap-1.5 text-sm"
-                  >
-                    <input
-                      id={`${id}-${o.value}`}
-                      name={f.name}
-                      type="checkbox"
-                      value={o.value}
-                      defaultChecked={selected.includes(o.value)}
-                      className="size-4"
-                    />
-                    {o.label}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
+            <div key={f.name} className="flex flex-col gap-1">
+              <Label htmlFor={id}>{f.label}</Label>
+              <MultiSelect
+                id={id}
+                name={f.name}
+                options={f.options ?? []}
+                defaultValue={
+                  Array.isArray(f.defaultValue) ? f.defaultValue : []
+                }
+                emptyLabel={f.emptyLabel ?? "Alle"}
+              />
+            </div>
           );
         }
         if (f.type === "select") {

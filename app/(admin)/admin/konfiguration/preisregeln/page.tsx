@@ -49,10 +49,11 @@ function ruleFields(
     { name: "priority", label: "Priorität", type: "number", defaultValue: rule?.priority ?? 10 },
     {
       name: "courtIds",
-      label: "Gilt für Plätze (keine Auswahl = alle)",
-      type: "multicheckbox",
+      label: "Gilt für",
+      type: "multiselect",
       options: courts.map((c) => ({ value: c.id, label: c.name })),
       defaultValue: rule?.courtIds ?? [],
+      emptyLabel: "Alle Plätze",
     },
     { name: "active", label: "Aktiv", type: "checkbox", defaultValue: rule?.active ?? true },
   ];

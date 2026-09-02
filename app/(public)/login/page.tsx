@@ -15,7 +15,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string; error?: string }>;
+  searchParams: Promise<{ callbackUrl?: string; error?: string; reset?: string }>;
 }) {
   const session = await auth();
   const params = await searchParams;
@@ -38,6 +38,11 @@ export default async function LoginPage({
       {errorMessage ? (
         <p className="text-destructive text-sm" role="alert">
           {errorMessage}
+        </p>
+      ) : null}
+      {params.reset === "ok" ? (
+        <p className="text-sm text-green-700" role="status">
+          Passwort gespeichert – du kannst dich jetzt damit anmelden.
         </p>
       ) : null}
       <LoginForm callbackUrl={callbackUrl} />

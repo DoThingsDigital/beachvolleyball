@@ -7,6 +7,7 @@ import { createRepositories } from "@/src/db/repositories";
 import { findProfile } from "@/src/db/users";
 import { getPublicShopContext } from "@/src/services/public-context";
 
+import { findUserWithPassword } from "@/src/db/account";
 import { findUpcomingBookingsForUser } from "@/src/db/bookings";
 import { findClubsWithMyMembership } from "@/src/db/club-memberships";
 import { getCreditBalance } from "@/src/db/credit";
@@ -17,6 +18,7 @@ import { logout } from "@/app/(public)/login/actions";
 import { BookingList, type MyBooking } from "./booking-list";
 import { MembershipSection, type ClubWithStatus } from "./membership-section";
 import { ProfileForm } from "./profile-form";
+import { SecuritySection } from "./security-forms";
 
 const SUB_STATUS_LABELS: Record<string, string> = {
   PENDING: "Warten auf Zahlung",
@@ -147,6 +149,12 @@ export default async function KontoPage() {
           billingCity: profile?.billingCity ?? "",
           billingCountry: profile?.billingCountry ?? "",
         }}
+      />
+
+      <SecuritySection
+        hasPassword={Boolean(
+          (await findUserWithPassword(session.user.id))?.passwordHash,
+        )}
       />
     </main>
   );

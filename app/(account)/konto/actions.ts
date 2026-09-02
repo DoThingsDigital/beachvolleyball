@@ -1,8 +1,10 @@
 "use server";
 
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { checkRateLimit } from "@/lib/rate-limit";
 import { auth } from "@/src/auth";
 import {
   findClubAdmins,
@@ -11,6 +13,7 @@ import {
 } from "@/src/db/club-memberships";
 import { updateProfile } from "@/src/db/users";
 import { DomainError } from "@/src/domain/errors";
+import { changePassword, requestEmailChange } from "@/src/services/account";
 import { getBrandName, sendEmail } from "@/src/email/send";
 import {
   CLUB_REQUEST_TEMPLATE,
@@ -153,6 +156,99 @@ export async function requestMembership(
   return result === "created"
     ? { ok: "Anfrage gesendet – der Verein prüft deine Mitgliedschaft." }
     : { ok: "Deine Anfrage liegt dem Verein bereits vor." };
+}
+
+// --- Sicherheit: Passwort ändern / E-Mail wechseln (A1-Nachtrag) -----------
+
+export type SecurityFormState = { ok?: string; error?: string };
+
+const changePasswordSchema = z
+  .object({
+    currentPassword: z.string(),
+    newPassword: z
+      .string()
+      .min(10, "Das neue Passwort muss mindestens 10 Zeichen haben."),
+    newPasswordRepeat: z.string(),
+  })
+  .refine((v) => v.newPassword === v.newPasswordRepeat, {
+    message: "Die neuen Passwörter stimmen nicht überein.",
+  });
+
+export async function changeMyPassword(
+  _prev: SecurityFormState,
+  formData: FormData,
+): Promise<SecurityFormState> {
+  const session = await auth();
+  if (!session?.user) return { error: "Nicht angemeldet." };
+
+  const parsed = changePasswordSchema.safeParse({
+    currentPassword: formData.get("currentPassword") ?? "",
+    newPassword: formData.get("newPassword"),
+    newPasswordRepeat: formData.get("newPasswordRepeat"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Ungültige Eingabe." };
+  }
+
+  try {
+    await changePassword({
+      userId: session.user.id,
+      currentPassword: parsed.data.currentPassword || null,
+      newPassword: parsed.data.newPassword,
+    });
+    return { ok: "Passwort geändert." };
+  } catch (error) {
+    if (error instanceof DomainError) return { error: error.message };
+    throw error;
+  }
+}
+
+const changeEmailSchema = z.object({
+  newEmail: z.email("Bitte eine gültige E-Mail-Adresse angeben."),
+  currentPassword: z.string().min(1, "Bitte das aktuelle Passwort angeben."),
+});
+
+export async function changeMyEmail(
+  _prev: SecurityFormState,
+  formData: FormData,
+): Promise<SecurityFormState> {
+  const session = await auth();
+  if (!session?.user) return { error: "Nicht angemeldet." };
+
+  const parsed = changeEmailSchema.safeParse({
+    newEmail: String(formData.get("newEmail") ?? "").trim().toLowerCase(),
+    currentPassword: formData.get("currentPassword"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Ungültige Eingabe." };
+  }
+  if (
+    !checkRateLimit(`emailchange:${session.user.id}`, {
+      limit: Number(process.env.REGISTER_RATE_LIMIT ?? 3),
+      windowMs: 15 * 60 * 1000,
+    })
+  ) {
+    return { error: "Zu viele Versuche. Bitte in 15 Minuten erneut versuchen." };
+  }
+
+  const h = await headers();
+  const proto = h.get("x-forwarded-proto") ?? "http";
+  const host = h.get("host") ?? "localhost:3000";
+
+  try {
+    await requestEmailChange({
+      userId: session.user.id,
+      newEmail: parsed.data.newEmail,
+      currentPassword: parsed.data.currentPassword,
+      baseUrl: `${proto}://${host}`,
+    });
+    return {
+      ok: "Bestätigungslink an die neue Adresse gesendet – erst nach dem Klick wird gewechselt.",
+    };
+  } catch (error) {
+    if (error instanceof DomainError) return { error: error.message };
+    throw error;
+  }
 }
 
 export type CancelBookingState = {

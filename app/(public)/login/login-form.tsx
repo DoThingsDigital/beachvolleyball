@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,12 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
             <Button type="submit" disabled={passwordPending}>
               {passwordPending ? "Wird angemeldet …" : "Anmelden"}
             </Button>
+            <Link
+              href="/passwort-vergessen"
+              className="text-muted-foreground text-sm hover:underline"
+            >
+              Passwort vergessen?
+            </Link>
           </form>
         </CardContent>
       </Card>

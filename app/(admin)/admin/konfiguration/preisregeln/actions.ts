@@ -48,7 +48,7 @@ const ruleSchema = z
       z.coerce.number().int().min(1),
     ]),
     priority: z.coerce.number().int().min(0).max(999),
-    courtId: z.string(), // "" = alle Plätze
+    courtIds: z.array(z.string().min(1)).max(100), // [] = alle Plätze
     active: z.coerce.boolean(),
   })
   .refine((v) => v.timeFrom < v.timeTo, {
@@ -66,7 +66,7 @@ function parseRule(formData: FormData) {
     pricePerHourCents: formData.get("pricePerHourCents"),
     memberPricePerHourCents: formData.get("memberPricePerHourCents") ?? "",
     priority: formData.get("priority"),
-    courtId: formData.get("courtId") ?? "",
+    courtIds: formData.getAll("courtIds"),
     active: formData.get("active") === "on",
   });
 }
@@ -80,9 +80,22 @@ function toData(d: z.infer<typeof ruleSchema>) {
     pricePerHourCents: d.pricePerHourCents,
     memberPricePerHourCents: d.memberPricePerHourCents,
     priority: d.priority,
-    courtIds: d.courtId ? [d.courtId] : [],
+    courtIds: [...new Set(d.courtIds)],
     active: d.active,
   };
+}
+
+// Fremde/gelöschte Platz-IDs würden die Regel stillschweigend ins Leere laufen
+// lassen – deshalb vor dem Speichern gegen die Plätze des Standorts prüfen.
+async function invalidCourtIds(
+  repos: ReturnType<typeof createRepositories>,
+  venueId: string,
+  courtIds: string[],
+) {
+  if (courtIds.length === 0) return false;
+  const courts = await repos.courts.findManyForVenue(venueId);
+  const known = new Set(courts.map((c) => c.id));
+  return courtIds.some((id) => !known.has(id));
 }
 
 export async function createPriceRule(
@@ -97,6 +110,9 @@ export async function createPriceRule(
   const repos = createRepositories(staff.ctx);
   const venue = await repos.venues.findById(parsed.data.venueId);
   if (!venue) return { error: "Standort nicht gefunden." };
+  if (await invalidCourtIds(repos, venue.id, parsed.data.courtIds)) {
+    return { error: "Unbekannter Platz in der Auswahl." };
+  }
 
   const rule = await repos.priceRules.create({
     ...toData(parsed.data),
@@ -129,6 +145,9 @@ export async function updatePriceRule(
     };
   }
   const repos = createRepositories(staff.ctx);
+  if (await invalidCourtIds(repos, parsed.data.venueId, parsed.data.courtIds)) {
+    return { error: "Unbekannter Platz in der Auswahl." };
+  }
   const ok = await repos.priceRules.update(id, toData(parsed.data));
   if (!ok) return { error: "Preisregel nicht gefunden." };
   await repos.auditLogs.create({
@@ -148,6 +167,16 @@ export type PreviewState = {
   error?: string;
   result?: string;
   breakdown?: string[];
+  // Echo der Eingaben: React 19 resettet das Formular nach der Action; die
+  // Werte werden als defaultValue zurückgespiegelt, damit der Admin denselben
+  // Slot z. B. mit/ohne Mitglied vergleichen kann, ohne neu einzutippen.
+  values?: {
+    courtId: string;
+    date: string;
+    startTime: string;
+    durationMin: string;
+    isMember: boolean;
+  };
 };
 
 const previewSchema = z.object({
@@ -165,22 +194,32 @@ export async function previewPrice(
   formData: FormData,
 ): Promise<PreviewState> {
   const staff = await requireStaff();
+  const values: NonNullable<PreviewState["values"]> = {
+    courtId: String(formData.get("courtId") ?? ""),
+    date: String(formData.get("date") ?? ""),
+    startTime: String(formData.get("startTime") ?? ""),
+    durationMin: String(formData.get("durationMin") ?? "60"),
+    isMember: formData.get("isMember") === "on",
+  };
   const parsed = previewSchema.safeParse({
     venueId: formData.get("venueId"),
     seasonId: formData.get("seasonId"),
-    courtId: formData.get("courtId"),
-    date: formData.get("date"),
-    startTime: formData.get("startTime"),
-    durationMin: formData.get("durationMin"),
-    isMember: formData.get("isMember") === "on",
+    courtId: values.courtId,
+    date: values.date,
+    startTime: values.startTime,
+    durationMin: values.durationMin,
+    isMember: values.isMember,
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Ungültige Eingabe." };
+    return {
+      error: parsed.error.issues[0]?.message ?? "Ungültige Eingabe.",
+      values,
+    };
   }
 
   const repos = createRepositories(staff.ctx);
   const venue = await repos.venues.findById(parsed.data.venueId);
-  if (!venue) return { error: "Standort nicht gefunden." };
+  if (!venue) return { error: "Standort nicht gefunden.", values };
   const rules = await repos.priceRules.findManyForSeason(parsed.data.seasonId);
 
   const [y, mo, da] = parsed.data.date.split("-").map(Number);
@@ -215,6 +254,7 @@ export async function previewPrice(
       breakdown: [...byRule.values()].map(
         (r) => `${r.label}: ${formatCents(r.cents)}`,
       ),
+      values,
     };
   } catch (error) {
     if (error instanceof DomainError) {
@@ -223,6 +263,7 @@ export async function previewPrice(
           error.code === "NO_PRICE_RULE"
             ? "Für diesen Slot greift keine Preisregel."
             : error.message,
+        values,
       };
     }
     throw error;

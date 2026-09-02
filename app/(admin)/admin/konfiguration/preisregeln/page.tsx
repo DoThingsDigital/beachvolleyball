@@ -48,14 +48,11 @@ function ruleFields(
     },
     { name: "priority", label: "Priorität", type: "number", defaultValue: rule?.priority ?? 10 },
     {
-      name: "courtId",
-      label: "Gilt für",
-      type: "select",
-      options: [
-        { value: "", label: "Alle Plätze" },
-        ...courts.map((c) => ({ value: c.id, label: c.name })),
-      ],
-      defaultValue: rule?.courtIds[0] ?? "",
+      name: "courtIds",
+      label: "Gilt für Plätze (keine Auswahl = alle)",
+      type: "multicheckbox",
+      options: courts.map((c) => ({ value: c.id, label: c.name })),
+      defaultValue: rule?.courtIds ?? [],
     },
     { name: "active", label: "Aktiv", type: "checkbox", defaultValue: rule?.active ?? true },
   ];
@@ -155,7 +152,10 @@ export default async function PreisregelnPage({
       <p className="text-muted-foreground text-xs">
         Preise sind Bruttopreise in Cent pro Stunde. Bei Überlappung gewinnt die
         höchste Priorität je 30-Minuten-Slot. Preise werden ausschließlich
-        serverseitig berechnet.
+        serverseitig berechnet. Bei den Plätzen sind mehrere Häkchen möglich –
+        z.&nbsp;B. eine Regel nur für Feld&nbsp;1 und Feld&nbsp;2 mit eigenem
+        Normal- und Mitgliederpreis (Priorität höher als die Basisregeln
+        setzen). Keine Auswahl bedeutet: Die Regel gilt für alle Plätze.
       </p>
     </div>
   );

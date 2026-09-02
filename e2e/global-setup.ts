@@ -32,6 +32,11 @@ export default async function globalSetup() {
       `UPDATE "Booking" SET status='EXPIRED'
        WHERE status='HOLD' AND "holdExpiresAt" < now()`,
     );
+    // Preisregel aus dem Mehrplatz-Test (admin-preisregeln.spec) abräumen –
+    // hier statt im Spec, damit kein paralleler Worker sie mittendrin löscht.
+    await pool.query(
+      `DELETE FROM "PriceRule" WHERE label = 'E2E-Zweifelder-Regel'`,
+    );
   } finally {
     await pool.end();
   }

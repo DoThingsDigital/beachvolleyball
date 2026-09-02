@@ -11,10 +11,18 @@ export type CrudActionState = { ok?: boolean; error?: string };
 export type CrudField = {
   name: string;
   label: string;
-  type: "text" | "number" | "date" | "time" | "checkbox" | "select" | "email";
+  type:
+    | "text"
+    | "number"
+    | "date"
+    | "time"
+    | "checkbox"
+    | "select"
+    | "email"
+    | "multicheckbox";
   options?: { value: string; label: string }[];
   required?: boolean;
-  defaultValue?: string | number | boolean;
+  defaultValue?: string | number | boolean | string[];
 };
 
 type CrudAction = (
@@ -69,6 +77,35 @@ export function CrudForm({
               />
               {f.label}
             </label>
+          );
+        }
+        if (f.type === "multicheckbox") {
+          const selected = Array.isArray(f.defaultValue) ? f.defaultValue : [];
+          return (
+            <fieldset key={f.name} className="flex min-w-0 flex-col gap-1">
+              <legend className="text-sm leading-none font-medium">
+                {f.label}
+              </legend>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1.5">
+                {f.options?.map((o) => (
+                  <label
+                    key={o.value}
+                    htmlFor={`${id}-${o.value}`}
+                    className="flex items-center gap-1.5 text-sm"
+                  >
+                    <input
+                      id={`${id}-${o.value}`}
+                      name={f.name}
+                      type="checkbox"
+                      value={o.value}
+                      defaultChecked={selected.includes(o.value)}
+                      className="size-4"
+                    />
+                    {o.label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
           );
         }
         if (f.type === "select") {

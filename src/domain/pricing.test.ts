@@ -153,6 +153,35 @@ describe("computePrice", () => {
     expect(r.grossCents).toBe(3400);
   });
 
+  it("Mehrplatz-Regel: gilt für alle gelisteten Plätze, sonst nicht", () => {
+    // Anwendungsfall Vereinsfelder: eine Regel für Feld 1+2 mit eigenem
+    // Normal- und Mitgliederpreis, Basisregeln bleiben für Feld 3/4.
+    const twoCourts: PriceRuleInput = {
+      ...peak,
+      id: "vereinsfelder",
+      courtIds: ["c1", "c2"],
+      pricePerHourCents: 3000,
+      memberPricePerHourCents: 2400,
+      priority: 30,
+    };
+    const rules = [...RULES, twoCourts];
+    const start = at(2026, 11, 2, 19);
+    const end = at(2026, 11, 2, 20);
+
+    for (const courtId of ["c1", "c2"]) {
+      const normal = price(start, end, { rules, courtId });
+      expect(normal.breakdown[0]?.ruleId).toBe("vereinsfelder");
+      expect(normal.grossCents).toBe(3000);
+      const member = price(start, end, { rules, courtId, isMember: true });
+      expect(member.grossCents).toBe(2400);
+      expect(member.memberRateApplied).toBe(true);
+    }
+
+    const other = price(start, end, { rules, courtId: "c3" });
+    expect(other.breakdown[0]?.ruleId).toBe("peak");
+    expect(other.grossCents).toBe(3400);
+  });
+
   it("kein Treffer → DomainError NO_PRICE_RULE", () => {
     expect(() => price(at(2026, 11, 2, 22, 30), at(2026, 11, 2, 23))).toThrow(
       DomainError,

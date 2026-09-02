@@ -1,0 +1,6 @@
+# Nach /etc/cron.d/dtd-booking kopieren (root:root, 0644) und
+# CRON_SECRET_PLACEHOLDER durch den Wert aus /opt/dtd-booking/.env ersetzen.
+# NF5/E3/J2: Hold-Ablauf, Kontingent-Freigabe, Erinnerungsmails.
+*/5 * * * * root curl -fsS -X POST -H "Authorization: Bearer CRON_SECRET_PLACEHOLDER" http://127.0.0.1:3000/api/cron/expire-holds >/dev/null 2>&1
+7 * * * * root curl -fsS -X POST -H "Authorization: Bearer CRON_SECRET_PLACEHOLDER" http://127.0.0.1:3000/api/cron/release-quota >/dev/null 2>&1
+19 * * * * root curl -fsS -X POST -H "Authorization: Bearer CRON_SECRET_PLACEHOLDER" http://127.0.0.1:3000/api/cron/reminders >/dev/null 2>&1

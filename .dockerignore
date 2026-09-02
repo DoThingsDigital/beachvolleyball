@@ -1,0 +1,14 @@
+node_modules
+.next
+.next-dev
+.git
+.env
+.env.*
+test-results
+playwright-report
+e2e
+design_handoff_picco_booking
+src/generated
+*.tar.gz
+*.xlsx
+*.xls

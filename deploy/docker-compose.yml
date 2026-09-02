@@ -1,0 +1,40 @@
+# Staging/Produktion auf dem VPS (Ticket 0.5).
+# Läuft aus /opt/dtd-booking/repo/deploy; Secrets in /opt/dtd-booking/.env
+# (nie im Repo). App ist nur auf localhost gebunden – nginx terminiert TLS.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dtd_booking
+      POSTGRES_USER: dtd
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - dtd_pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dtd -d dtd_booking"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build:
+      context: ..
+    restart: unless-stopped
+    env_file:
+      - ../../.env
+    environment:
+      DATABASE_URL: postgresql://dtd:${DB_PASSWORD}@db:5432/dtd_booking
+    volumes:
+      - dtd_invoices:/data/invoices
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  dtd_pgdata:
+  dtd_invoices:

@@ -1,0 +1,24 @@
+# Uptime-Check (Ticket 6.6): GitHub Actions prüft alle 15 min von außen,
+# ob Staging antwortet. Schlägt der Check fehl, wird der Run rot und GitHub
+# mailt den Repo-Owner. Bei Domain-Umzug STAGING_URL anpassen.
+# Hinweis: GitHub pausiert schedule-Workflows nach 60 Tagen ohne Repo-Aktivität.
+name: uptime
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+env:
+  STAGING_URL: https://buchen.72-61-88-8.sslip.io/
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Startseite antwortet mit 200
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 "$STAGING_URL")
+          echo "HTTP $code fuer $STAGING_URL"
+          test "$code" = "200"

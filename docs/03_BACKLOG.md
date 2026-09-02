@@ -95,7 +95,7 @@ Definition of Done (global): Code gemerged, Tests grün, Migration angewendet, i
 | [x] 6.3 | **Report Vereinsnutzung** mit vier Quoten, Definitionstext, CSV + PDF | 6 | L3 | Sportamt-tauglicher Export |
 | [x] 6.4 | Report Dauerplatz-Quote | 2 | L4 | – |
 | [x] 6.5 | Datenauskunft/Anonymisierung im Admin | 3 | A5 | Rechnungen bleiben erhalten |
-| [ ] 6.6 | Go-Live-Checkliste Stufe 2, Lasttest Kalender, Uptime-Alarme | 5 | NF12 | – |
+| [~] 6.6 | Go-Live-Checkliste Stufe 2, Lasttest Kalender, Uptime-Alarme | 5 | NF12 | Uptime-Check via GitHub Actions (.github/workflows/uptime.yml, alle 15 min, Mail bei Rot) ✓; Lasttest siehe docs/05_LASTTEST.md; Checkliste Stufe 2 wartet auf Stammdaten/Roland |
 
 **Stufe 2 live: vor Hallenöffnung** (nach aktuellem Stand KW 44, nachziehen falls Öffnung später).
 
@@ -107,7 +107,7 @@ Definition of Done (global): Code gemerged, Tests grün, Migration angewendet, i
 | 10er-Karte (Minutenkontingent) | 10 | M2 |
 | Gutscheine inkl. Widerrufsbelehrung | 10 | M3 |
 | Warteliste + Benachrichtigung | 10 | D8, N1 |
-| Kontingent-Selbstbuchung für Vereinsmitglieder | 12 | E5 |
+| ✅ Kontingent-Selbstbuchung für Vereinsmitglieder (als Mitglieder-Buchungsfenster umgesetzt, siehe E-005: Mitglieder buchen/zahlen Vereins-Slots selbst zum Mitgliederpreis, Freigabe an Nichtmitglieder erst ab Frist) | 12 | E5 |
 | Bank-SEPA: Gläubiger-ID, Mandat, Pre-Notification, pain.008-Export, Rücklastschrift-Import | 25 | G8 |
 | Monatliche Dauerplatz-Abbuchung | 10 | F6 |
 | DATEV-Export, Rechnungsausgangsbuch | 8 | H6 |

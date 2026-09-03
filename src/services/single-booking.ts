@@ -134,14 +134,24 @@ export async function getSingleBookingQuote(
 
   // Saison mit geöffnetem Verkauf, die den Termin abdeckt (B3)
   const seasons = await repos.seasons.findManyForVenue(venue.id);
-  const season = seasons.find(
-    (s) =>
-      (s.status === "ACTIVE" || s.status === "PRESALE") &&
-      s.startDate <= startAt &&
-      startAt < s.endDate,
+  const bookableSeasons = seasons.filter(
+    (s) => s.status === "ACTIVE" || s.status === "PRESALE",
+  );
+  const season = bookableSeasons.find(
+    (s) => s.startDate <= startAt && startAt < s.endDate,
   );
   if (!season) {
-    throw new DomainError("SEASON_NOT_BOOKABLE", "Für diesen Termin ist keine Buchung möglich.");
+    // Liegt der Termin vor einer kommenden Saison, den Grund benennen –
+    // sonst wirkt der Kalender kaputt, obwohl nur die Saison noch nicht läuft.
+    const upcoming = bookableSeasons
+      .filter((s) => s.startDate.getTime() > startAt.getTime())
+      .sort((a, b) => a.startDate.getTime() - b.startDate.getTime())[0];
+    throw new DomainError(
+      "SEASON_NOT_BOOKABLE",
+      upcoming
+        ? `Der Termin liegt vor dem Saisonstart: ${upcoming.name} beginnt am ${formatDate(upcoming.startDate)} – ab dann sind die Slots buchbar.`
+        : "Für diesen Termin ist keine buchbare Saison hinterlegt.",
+    );
   }
 
   // Mitglieder-Buchungsfenster (E-005): vor der Freigabefrist dürfen nur

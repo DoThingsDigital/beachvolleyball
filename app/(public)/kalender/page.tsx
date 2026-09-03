@@ -1,9 +1,10 @@
 import { TZDate } from "@date-fns/tz";
 import Link from "next/link";
 
-import { formatCents, formatWeekday } from "@/lib/format";
+import { formatCents, formatDate, formatWeekday } from "@/lib/format";
 import { auth } from "@/src/auth";
 import { isActiveClubMember } from "@/src/db/club-memberships";
+import { createRepositories } from "@/src/db/repositories";
 import { DomainError } from "@/src/domain/errors";
 import { addDays, isoWeekdayOfDate } from "@/src/domain/week-occupancy";
 import { getWeekOccupancy } from "@/src/services/occupancy";
@@ -89,6 +90,30 @@ export default async function KalenderPage({
     startDate: weekStart,
   });
   const day = week.days.find((d) => d.date === date) ?? week.days[0]!;
+
+  // Liegt der angezeigte Tag vor der nächsten buchbaren Saison, das erklären –
+  // sonst wirken die (nicht buchbaren) freien Slots wie ein Fehler.
+  const [dy, dm, dd] = date.split("-").map(Number);
+  const dayStartMs = new TZDate(dy!, dm! - 1, dd!, 0, 0, venue.timezone).getTime();
+  const dayEndMs = new TZDate(dy!, dm! - 1, dd! + 1, 0, 0, venue.timezone).getTime();
+  const seasons = await createRepositories(ctx).seasons.findManyForVenue(venue.id);
+  const bookableSeasons = seasons.filter(
+    (s) => s.status === "ACTIVE" || s.status === "PRESALE",
+  );
+  const dayInSeason = bookableSeasons.some(
+    (s) => s.startDate.getTime() < dayEndMs && dayStartMs < s.endDate.getTime(),
+  );
+  const upcomingSeason = dayInSeason
+    ? null
+    : (bookableSeasons
+        .filter((s) => s.startDate.getTime() >= dayEndMs)
+        .sort((a, b) => a.startDate.getTime() - b.startDate.getTime())[0] ?? null);
+  const upcomingSeasonDate = upcomingSeason
+    ? new TZDate(upcomingSeason.startDate.getTime(), venue.timezone)
+    : null;
+  const upcomingSeasonTag = upcomingSeasonDate
+    ? `${upcomingSeasonDate.getFullYear()}-${String(upcomingSeasonDate.getMonth() + 1).padStart(2, "0")}-${String(upcomingSeasonDate.getDate()).padStart(2, "0")}`
+    : null;
 
   // Buchbarkeitsfenster (D2): Vorlauf + Horizont in lokaler Zeit
   const now = Date.now();
@@ -206,6 +231,20 @@ export default async function KalenderPage({
           ›
         </Link>
       </nav>
+
+      {upcomingSeason && upcomingSeasonTag ? (
+        <p className="bg-sand text-sand-dark rounded-md px-3 py-2 text-sm">
+          An diesem Tag ist noch keine Buchung möglich –{" "}
+          <strong>{upcomingSeason.name}</strong> beginnt am{" "}
+          {formatDate(upcomingSeason.startDate)}.{" "}
+          <Link
+            href={q({ tag: upcomingSeasonTag })}
+            className="font-semibold underline"
+          >
+            Zum Saisonstart →
+          </Link>
+        </p>
+      ) : null}
 
       <table className="w-full table-fixed border-collapse text-center text-sm">
         <thead>
